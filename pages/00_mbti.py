@@ -5,32 +5,46 @@ import urllib.parse
 # ---------------------------
 # 기본 설정
 # ---------------------------
-st.set_page_config(page_title="감정 기반 플레이리스트 🎧", page_icon="🎵", layout="centered")
+st.set_page_config(page_title="너를 위한 플레이리스트 추천 🎧", page_icon="🎧", layout="centered")
 
 # ---------------------------
-# 스타일 (네온 다크 테마)
+# 세련된 힙한 스타일 (그라데이션 + 네온 효과)
 # ---------------------------
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
+
 body {
-    background-color: #0d0d0d;
-    color: white;
-    font-family: 'Pretendard', sans-serif;
+    background: linear-gradient(135deg, #0f0f0f 20%, #1b1b1b 80%);
+    color: #eaeaea;
+    font-family: 'Poppins', sans-serif;
 }
 h1, h2, h4 {
+    font-weight: 700;
+}
+h1 {
+    font-size: 2.6em;
+    text-align: center;
+    background: linear-gradient(90deg, #1DB954, #38b6ff, #ff6ec7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+}
+h2 {
     color: #1DB954;
 }
 .playlist-card {
-    background-color: #1a1a1a;
-    border-radius: 15px;
+    background: rgba(25, 25, 25, 0.85);
+    border: 1px solid rgba(80, 255, 160, 0.2);
+    border-radius: 20px;
     padding: 20px;
     margin-bottom: 15px;
-    box-shadow: 0 0 10px rgba(29,185,84,0.4);
+    box-shadow: 0 0 25px rgba(0,0,0,0.5);
     transition: 0.3s;
 }
 .playlist-card:hover {
-    box-shadow: 0 0 20px rgba(29,185,84,0.7);
-    transform: translateY(-2px);
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(29,185,84,0.5);
 }
 a {
     color: #1DB954;
@@ -38,7 +52,32 @@ a {
     font-weight: bold;
 }
 a:hover {
-    text-decoration: underline;
+    color: #38b6ff;
+}
+.stTextInput input {
+    background-color: #222;
+    color: #fff;
+    border-radius: 10px;
+    border: 1px solid #1DB954;
+}
+.stSelectbox select {
+    background-color: #222;
+    color: #fff;
+    border-radius: 10px;
+    border: 1px solid #1DB954;
+}
+.stButton>button {
+    background: linear-gradient(90deg, #1DB954, #38b6ff);
+    color: white;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 10px 20px;
+    border: none;
+    transition: 0.3s;
+}
+.stButton>button:hover {
+    background: linear-gradient(90deg, #38b6ff, #1DB954);
+    transform: translateY(-2px);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -47,19 +86,21 @@ a:hover {
 # 헤더
 # ---------------------------
 st.markdown("""
-<h1 style='text-align:center;'>🎧 감정 기반 플레이리스트 생성기</h1>
-<p style='text-align:center; color:gray;'>감정, 날씨, 장르에 어울리는 음악을 추천해드릴게요 🌙</p>
+<h1>너를 위한 플레이리스트 추천 🎧</h1>
+<p style='text-align:center; color:gray;'>
+너의 감정, 날씨, 그리고 음악 취향을 담아 만든 특별한 플레이리스트 💽
+</p>
 """, unsafe_allow_html=True)
 
 # ---------------------------
 # 사용자 입력
 # ---------------------------
-emotion = st.text_input("💭 지금 당신의 감정은 어떤가요?", placeholder="예: 설레, 우울해, 행복해, 피곤해...")
-weather = st.selectbox("🌤️ 지금 날씨는 어떤가요?", ["맑음", "흐림", "비", "눈", "바람"])
+emotion = st.text_input("💭 지금 기분은 어때?", placeholder="예: 설레, 우울해, 기분 좋아, 피곤해...")
+weather = st.selectbox("🌤️ 지금 날씨는 어때?", ["맑음", "흐림", "비", "눈", "바람"])
 genre = st.selectbox("🎶 듣고 싶은 장르는?", ["팝", "힙합", "K-POP", "락", "R&B", "재즈", "EDM"])
 
 # ---------------------------
-# YouTube 검색 링크 함수
+# YouTube 검색 링크
 # ---------------------------
 def youtube_search_link(song_title):
     query = urllib.parse.quote(song_title)
@@ -70,14 +111,13 @@ def youtube_search_link(song_title):
 # ---------------------------
 def generate_playlist(emotion, weather, genre):
     title_templates = [
-        f"{emotion}한 {weather}날의 {genre} 플레이리스트",
-        f"{weather} 날씨에 어울리는 {emotion}한 {genre} 감성",
-        f"{emotion}을 담은 {weather}날의 {genre} 선율",
-        f"{weather} 속 {emotion}의 {genre} Vibes"
+        f"{emotion}한 {weather}날, 너에게 어울리는 {genre} 플레이리스트 🎶",
+        f"{weather} 속 {emotion} 감성을 담은 {genre} Vibes 🌈",
+        f"{emotion}한 Mood에 딱 맞는 {genre} Tracks 💿",
+        f"{weather}인 오늘, {emotion}한 {genre} 선율을 들어봐 🎧"
     ]
     title = random.choice(title_templates)
 
-    # 장르별 노래 후보
     song_pool = {
         "팝": [
             ("As It Was - Harry Styles", "가볍게 흥얼거리며 들을 수 있는 팝 명곡이에요."),
@@ -148,19 +188,19 @@ def generate_playlist(emotion, weather, genre):
 # ---------------------------
 # 실행 버튼
 # ---------------------------
-if st.button("🎵 플레이리스트 생성하기"):
+if st.button("✨ 나만의 플레이리스트 만들어줘"):
     if not emotion.strip():
         st.warning("감정을 입력해주세요!")
     else:
-        with st.spinner("감정에 맞는 노래를 찾는 중이에요... 🎶"):
+        with st.spinner("너에게 어울리는 곡을 찾는 중... 🎶"):
             title, playlist = generate_playlist(emotion, weather, genre)
 
-        cover_url = f"https://source.unsplash.com/800x600/?{emotion},{weather},{genre},music,album"
+        cover_url = f"https://source.unsplash.com/800x600/?{emotion},{weather},{genre},music,album,neon"
 
         st.markdown(f"""
-        <div style="text-align:center; margin-top:30px;">
-            <img src="{cover_url}" width="70%" style="border-radius:20px; box-shadow:0 0 25px rgba(29,185,84,0.5);">
-            <h2 style="margin-top:20px;">{title}</h2>
+        <div style="text-align:center; margin-top:40px;">
+            <img src="{cover_url}" width="75%" style="border-radius:25px; box-shadow:0 0 35px rgba(56,182,255,0.4);">
+            <h2 style="margin-top:25px;">{title}</h2>
         </div>
         """, unsafe_allow_html=True)
 
@@ -175,12 +215,11 @@ if st.button("🎵 플레이리스트 생성하기"):
             </div>
             """, unsafe_allow_html=True)
 
-        st.success("✨ 당신만의 감성 플레이리스트가 완성됐어요! 🎧")
+        st.balloons()
+        st.success("🎧 너만을 위한 플레이리스트가 완성됐어요!")
 
 # ---------------------------
 # 하단
 # ---------------------------
 st.markdown("<hr>", unsafe_allow_html=True)
-st.caption("© 2025 Made with 💚 by Yoojin | 감정·날씨·장르 기반 음악 큐레이터 🎶")
-
-
+st.caption("💿 2025 © 너를 위한 플레이리스트 | Designed by Yoojin 🎵")
