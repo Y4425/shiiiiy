@@ -2,24 +2,16 @@ import streamlit as st
 import random
 import urllib.parse
 
-# ---------------------------
-# 기본 설정
-# ---------------------------
 st.set_page_config(page_title="너를 위한 플레이리스트 💫🎧🎀", page_icon="🎧", layout="centered")
 
-# ---------------------------
-# 핑크 + 블랙 Y2K 스타일
-# ---------------------------
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
-
 body {
     background: linear-gradient(135deg, #0d0d0d 20%, #1a001a 90%);
     color: #fce4ec;
     font-family: 'Poppins', sans-serif;
 }
-
 h1 {
     text-align: center;
     font-size: 2.8em;
@@ -29,13 +21,11 @@ h1 {
     font-weight: 800;
     text-shadow: 0 0 10px rgba(255,105,180,0.6);
 }
-
 p {
     text-align: center;
     color: #d9b3ff;
     font-size: 1em;
 }
-
 .playlist-card {
     background: rgba(35, 0, 35, 0.8);
     border: 1px solid rgba(255, 100, 180, 0.3);
@@ -97,31 +87,19 @@ a:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------
-# 헤더
-# ---------------------------
 st.markdown("""
 <h1>너를 위한 플레이리스트 💫🎧🎀</h1>
 <p>감정, 날씨, 그리고 취향으로 완성되는 힙한 나만의 음악 리스트 💋</p>
 """, unsafe_allow_html=True)
 
-# ---------------------------
-# 사용자 입력
-# ---------------------------
 emotion = st.text_input("💭 지금 기분은 어때?", placeholder="예: 설레, 우울해, 기분 좋아, 피곤해...")
 weather = st.selectbox("🌤️ 지금 날씨는 어때?", ["맑음", "흐림", "비", "눈", "바람"])
-genre = st.selectbox("🎶 듣고 싶은 장르는?", ["팝", "힙합", "K-POP", "락", "R&B", "재즈", "EDM"])
+genre = st.selectbox("🎶 듣고 싶은 장르는?", ["팝", "힙합", "K‑POP", "락", "R&B", "재즈", "EDM"])
 
-# ---------------------------
-# YouTube 검색 링크 함수
-# ---------------------------
 def youtube_search_link(song_title):
     query = urllib.parse.quote(song_title)
     return f"https://www.youtube.com/results?search_query={query}"
 
-# ---------------------------
-# 플레이리스트 생성 함수
-# ---------------------------
 def generate_playlist(emotion, weather, genre):
     title_templates = [
         f"{emotion}한 {weather}날, 너에게 어울리는 {genre} Mood 💗",
@@ -135,8 +113,8 @@ def generate_playlist(emotion, weather, genre):
         "팝": [
             ("As It Was - Harry Styles", "가볍게 흥얼거리며 들을 수 있는 팝 명곡."),
             ("Levitating - Dua Lipa", "밝은 리듬으로 기분을 업시켜주는 노래."),
-            ("Vampire - Olivia Rodrigo", "감정의 기복을 세련되게 표현한 감성 팝."),
             ("Shivers - Ed Sheeran", "설레는 마음을 담은 팝송."),
+            ("Vampire - Olivia Rodrigo", "감정의 기복을 세련되게 표현한 감성 팝."),
             ("Flowers - Miley Cyrus", "스스로를 사랑하자는 메시지를 담은 노래.")
         ],
         "힙합": [
@@ -146,24 +124,22 @@ def generate_playlist(emotion, weather, genre):
             ("DNA - BTS", "자신감을 폭발시키는 강렬한 비트."),
             ("HUMBLE - Kendrick Lamar", "자기 반성의 메시지를 담은 명곡.")
         ],
-        "K-POP": [
+        "K‑POP": [
+            # 기존 + 추가 실제 있는 남자아이돌 곡들
             ("Love Dive - IVE", "자신감 넘치는 사랑의 에너지를 담은 곡."),
-            ("ETA - NewJeans", "청량한 리듬과 중독성 있는 후렴이 매력적."),
+            ("ETA - NewJeans", "청량한 리듬과 중독성 있는 후렴이 매력적이에요."),
             ("Super Shy - NewJeans", "수줍은 마음을 귀엽게 표현한 곡."),
-            ("Super - SEVENTEEN", "에너지 넘치는 퍼포먼스로 기분을 끌어올려줘요."),
-            ("ANTIFRAGILE - LE SSERAFIM", "역경을 이겨내는 강인함을 담은 곡."),
-            ("Tomboy - (G)I-DLE", "당당하고 솔직한 태도를 표현한 걸크러시 명곡."),
-            ("Next Level - aespa", "자신감 넘치는 메시지의 중독성 강한 곡."),
-            ("Love Shot - EXO", "치명적인 분위기와 매혹적인 사운드가 특징이에요."),
-            ("I Am - IVE", "스스로의 정체성을 당당히 드러내는 K-POP 명곡."),
-            ("Hype Boy - NewJeans", "사랑에 빠진 설렘을 트렌디하게 담은 곡.")
+            ("MANIAC - Stray Kids", "틀을 깨고 나아가는 강렬한 퍼포먼스가 돋보이는 곡이에요."),  # 실제 존재함 :contentReference[oaicite:1]{index=1}
+            ("Lalalala - Stray Kids", "축하와 자유로움을 담아낸 신나는 노래예요."),  # 실제 존재함 :contentReference[oaicite:2]{index=2}
+            ("Wish - NCT WISH", "희망찬 메시지로 데뷔한 그들의 대표 싱글이예요."),  # 실제 존재함 :contentReference[oaicite:3]{index=3}
+            ("What You Want - CORTIS", "새로운 보이그룹의 시작을 알리는 데뷔곡이에요."),  # 실제 존재함 :contentReference[oaicite:4]{index=4}
         ],
         "락": [
             ("Counting Stars - OneRepublic", "리듬감 넘치고 희망적인 메시지를 담은 록송."),
             ("Smells Like Teen Spirit - Nirvana", "전설적인 록 사운드의 대표작."),
             ("Yellow - Coldplay", "사랑과 따뜻함을 담은 감성 록."),
             ("Boulevard of Broken Dreams - Green Day", "외로움 속에서도 자신을 찾는 노래."),
-            ("Paradise - Coldplay", "현실의 벽을 넘어 꿈을 그리는 노래.")
+            ("Paradise - Coldplay", "현실의 벽을 넘어 꿈을 그리는 노래예요.")
         ],
         "R&B": [
             ("Peaches - Justin Bieber", "따뜻한 분위기의 R&B 대표곡."),
@@ -174,17 +150,17 @@ def generate_playlist(emotion, weather, genre):
         ],
         "재즈": [
             ("Fly Me To The Moon - Frank Sinatra", "고전 재즈의 낭만을 느낄 수 있는 곡."),
-            ("Take Five - Dave Brubeck", "재즈의 리듬을 대표하는 명곡이에요."),
-            ("Autumn Leaves - Chet Baker", "가을 감성에 딱 어울리는 잔잔한 재즈."),
-            ("Blue in Green - Miles Davis", "서정적인 감정선이 돋보이는 곡."),
-            ("My Funny Valentine - Chet Baker", "부드럽고 감미로운 발렌타인데이의 정서.")
+            ("Take Five - Dave Brubeck", "재즈의 리듬을 대표하는 명곡이에요."),
+            ("Autumn Leaves - Chet Baker", "가을 감성에 딱 어울리는 잔잔한 재즈."),
+            ("Blue in Green - Miles Davis", "서정적인 감정선이 돋보이는 곡."),
+            ("My Funny Valentine - Chet Baker", "부드럽고 감미로운 발렌타인데이의 정서.")
         ],
         "EDM": [
             ("Animals - Martin Garrix", "폭발적인 에너지의 EDM 대표곡."),
             ("Titanium - David Guetta", "자신감을 높여주는 강렬한 곡이에요."),
-            ("Closer - The Chainsmokers", "로맨틱하면서도 신나는 EDM."),
-            ("Wake Me Up - Avicii", "희망찬 감정을 담은 EDM 명곡."),
-            ("Don't You Worry Child - Swedish House Mafia", "감동적인 멜로디가 인상적인 곡이에요.")
+            ("Closer - The Chainsmokers", "로맨틱하면서도 신나는 EDM."),
+            ("Wake Me Up - Avicii", "희망찬 감정을 담은 EDM 명곡."),
+            ("Don't You Worry Child - Swedish House Mafia", "감동적인 멜로디가 인상적인 곡이에요.")
         ]
     }
 
@@ -198,9 +174,6 @@ def generate_playlist(emotion, weather, genre):
         })
     return title, playlist
 
-# ---------------------------
-# 실행 버튼
-# ---------------------------
 if st.button("💖 나만의 플레이리스트 만들어줘"):
     if not emotion.strip():
         st.warning("감정을 입력해주세요!")
@@ -231,9 +204,6 @@ if st.button("💖 나만의 플레이리스트 만들어줘"):
         st.balloons()
         st.success("💞 너만의 감성 플레이리스트가 완성됐어요!")
 
-# ---------------------------
-# 하단
-# ---------------------------
 st.markdown("<hr>", unsafe_allow_html=True)
 st.caption("💖 2025 © 너를 위한 플레이리스트 | Designed with love by Yoojin 🎀")
 
