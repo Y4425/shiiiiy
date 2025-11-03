@@ -1,297 +1,314 @@
-# app.py
-import os
+# App.py
+import time
 import numpy as np
 import pandas as pd
-import streamlit as st
 import plotly.express as px
+import streamlit as st
 
-# ─────────────────────────────────────────────────────────
-# 🌍 페이지 기본 설정
-# ─────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title="🌍 지구 키우기 - 환경 행동 게임",
-    layout="wide",
-    page_icon="🌱"
-)
-
-# ─────────────────────────────────────────────────────────
-# 🌈 스타일 (CSS 커스터마이징)
-# ─────────────────────────────────────────────────────────
+# ─────────────────────────────────────────
+# 기본 설정 & 전역 스타일
+# ─────────────────────────────────────────
+st.set_page_config(page_title="🌍 지구 키우기", layout="wide", page_icon="🌱")
 st.markdown("""
-    <style>
-    /* 배경색 & 글씨 */
-    .stApp {
-        background: linear-gradient(180deg, #e0f7fa 0%, #f1f8e9 100%);
-        color: #004d40;
-        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
-    }
-    /* 카드 느낌의 박스 */
-    .glass {
-        background: rgba(255,255,255,0.55);
-        backdrop-filter: blur(6px);
-        border: 1px solid rgba(0,0,0,0.06);
-        border-radius: 12px;
-        padding: 16px;
-    }
-    /* 제목 이모지 크기 */
-    h1, h2, h3 { line-height: 1.2; }
-    </style>
+<style>
+:root{
+  --ink:#004d40; --glass:rgba(255,255,255,.65);
+  --good:#2e7d32; --mid:#f9a825; --bad:#c62828;
+}
+*{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;}
+.stApp{background:linear-gradient(180deg,#e0f7fa 0%,#f1f8e9 100%); color:var(--ink);}
+.glass{background:var(--glass); backdrop-filter:blur(6px); border-radius:14px; padding:16px; border:1px solid rgba(0,0,0,.06); margin-bottom:12px;}
+.center{text-align:center}
+.big{font-size:64px; line-height:1}
+
+/* ── 🌍 CSS Earth (이미지 없이) ───────────────────────── */
+.earth-wrap{display:flex; align-items:center; justify-content:center; width:100%; margin:8px 0 2px;}
+.earth{
+  position:relative; width:var(--size,220px); height:var(--size,220px); border-radius:50%;
+  box-shadow:0 22px 44px rgba(0,0,0,.16), inset -14px -14px 24px rgba(0,0,0,.12);
+  overflow:hidden; transform: translateZ(0); animation: spin var(--spin,16s) linear infinite;
+}
+.ocean{position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(60% 60% at 35% 35%, #7bd2ff 0%, #42b6ea 25%, #168dd6 60%, #0a6bb5 100%);
+}
+.land,.land:before,.land:after{
+  position:absolute; content:""; background:#49b675; filter: drop-shadow(0 2px 0 rgba(0,0,0,.12));
+  border-radius:40% 60% 55% 45% / 50% 45% 55% 50%; opacity:.95;
+}
+.land{ width:56%; height:36%; left:10%; top:22%; transform:rotate(-8deg); }
+.land:before{ width:28%; height:20%; left:62%; top:-8%; transform:rotate(12deg);}
+.land:after{ width:35%; height:22%; left:58%; top:55%; transform:rotate(-18deg); }
+
+.cloud,.cloud:before{position:absolute; content:""; background:linear-gradient(#fff,#f6f6f6); border-radius:999px; opacity:.82;}
+.cloud{ width:48%; height:16%; left:-50%; top:28%; animation: drift 16s linear infinite; filter: blur(.2px);}
+.cloud:before{ width:36%; height:12%; left:40%; top:-24%;}
+.cloud2{ width:36%; height:12%; left:120%; top:58%; animation: drift2 22s linear infinite; filter: blur(.2px);}
+@keyframes drift{ from{transform:translateX(0)} to{transform:translateX(220%)}}
+@keyframes drift2{ from{transform:translateX(0)} to{transform:translateX(-260%)}}
+@keyframes spin{ from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+.face{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.eyes{ position:absolute; top:42%; left:50%; width:52%; height:28%; transform:translateX(-50%); display:flex; justify-content:space-between; padding:0 16%; }
+.eye{ width:16px; height:16px; background:#1e2a2a; border-radius:50%; box-shadow:0 2px 0 rgba(255,255,255,.35) inset; }
+.mouth{ position:absolute; top:60%; left:50%; transform:translateX(-50%); width:44%; height:28px; }
+.mouth:before{ content:""; position:absolute; inset:0; border-radius:0 0 60px 60px / 0 0 50px 50px; background:#1e2a2a;
+  height:10px; transition:all .35s cubic-bezier(.2,.8,.2,1);
+}
+.blushL,.blushR{ position:absolute; top:54%; width:22px; height:12px; background:rgba(255,105,97,.35); border-radius:999px; filter: blur(.5px); }
+.blushL{ left:22%; } .blushR{ right:22%; }
+
+/* 표정 단계 */
+.sad .mouth:before{ height:12px; border-radius:60px 60px 0 0 / 50px 50px 0 0; transform: translateX(-50%) rotate(180deg);}
+.neutral .mouth:before{ height:10px;}
+.happy .mouth:before{ height:18px;}
+.ecstatic .mouth:before{ height:26px;}
+.earth.happy{ box-shadow:0 24px 46px rgba(0,0,0,.18), 0 0 0 8px rgba(46,125,50,.10) inset;}
+.earth.ecstatic{ box-shadow:0 28px 52px rgba(0,0,0,.2), 0 0 0 10px rgba(46,125,50,.16) inset; animation: spin var(--spin,10s) linear infinite;}
+
+/* 반짝이는 별 */
+.sky{ position:relative; height:38px; margin-top:4px;}
+.star{ position:absolute; width:6px; height:6px; border-radius:50%; background: radial-gradient(#fff, rgba(255,255,255,.1));
+  animation: twinkle 1.6s ease-in-out infinite; opacity:.0;
+}
+.star:nth-child(1){ left:20%; animation-delay:.1s;}
+.star:nth-child(2){ left:38%; animation-delay:.5s;}
+.star:nth-child(3){ left:52%; animation-delay:.2s;}
+.star:nth-child(4){ left:66%; animation-delay:.9s;}
+.star:nth-child(5){ left:82%; animation-delay:.4s;}
+@keyframes twinkle{ 0%,100%{opacity:0} 50%{opacity:1; transform:scale(1.4)} }
+
+</style>
 """, unsafe_allow_html=True)
 
-st.title("🌍 지구 키우기 - 환경 행동 게임")
-st.caption("CSV의 내용을 지도 위 마커 툴팁에 보여주고, 색/크기/필터/투영법을 조절할 수 있어요.")
+# ─────────────────────────────────────────
+# 세션 상태
+# ─────────────────────────────────────────
+ss = st.session_state
+if "page" not in ss: ss.page = "start"        # start → action → mission
+if "score" not in ss: ss.score = 0
+if "actions" not in ss: ss.actions = []
+if "selected_iso" not in ss: ss.selected_iso = None
+if "streak" not in ss: ss.streak = 0          # 콤보
+if "last_ts" not in ss: ss.last_ts = 0.0      # 콤보 시간 기준
 
-# ─────────────────────────────────────────────────────────
-# 📁 데이터 불러오기
-# ─────────────────────────────────────────────────────────
-DEFAULT_PATH = "/mnt/data/TalkFile_World.csv.csv"
+def go_to(p): ss.page = p
+def reset_game():
+    ss.page, ss.score, ss.actions, ss.selected_iso = "start", 0, [], None
+    ss.streak, ss.last_ts = 0, 0.0
 
+# 사이드바
 with st.sidebar:
-    st.header("📁 데이터")
-    uploaded = st.file_uploader("CSV 파일 업로드 (.csv)", type=["csv"])
-    if uploaded is not None:
-        df = pd.read_csv(uploaded)
-        st.success("업로드한 CSV를 사용합니다.")
-    elif os.path.exists(DEFAULT_PATH):
-        df = pd.read_csv(DEFAULT_PATH)
-        st.info(f"기본 파일 사용: {DEFAULT_PATH}")
-    else:
-        st.error("CSV를 업로드하거나 기본 경로에 파일을 두세요.")
-        st.stop()
+    st.header("🧭 메뉴")
+    choice = st.radio("화면 이동", ["시작 화면", "행동 화면", "기록/미션"],
+                      index={"start":0,"action":1,"mission":2}[ss.page])
+    ss.page = {"시작 화면":"start","행동 화면":"action","기록/미션":"mission"}[choice]
+    st.divider()
+    st.button("🔄 초기화", on_click=reset_game)
 
-# 빈 DF 방지
-if df.empty:
-    st.warning("CSV에 데이터가 없습니다.")
-    st.stop()
-
-# ─────────────────────────────────────────────────────────
-# 🔎 위도/경도/이름 컬럼 자동 감지
-# ─────────────────────────────────────────────────────────
-LAT_CANDS = ["lat", "latitude", "위도", "Lat", "Latitude"]
-LON_CANDS = ["lon", "lng", "longitude", "경도", "Lon", "Longitude"]
-NAME_CANDS = ["name", "country", "국가", "지역", "도시", "place", "Name", "Country"]
-
-def find_first(candidates, columns):
-    for c in candidates:
-        if c in columns:
-            return c
-    return None
-
-auto_lat = find_first(LAT_CANDS, df.columns)
-auto_lon = find_first(LON_CANDS, df.columns)
-auto_name = find_first(NAME_CANDS, df.columns)
-
+# ─────────────────────────────────────────
+# 데이터(옵션 업로드 또는 내장 예시)
+# ─────────────────────────────────────────
 with st.sidebar:
-    st.header("🗺️ 위치 매핑")
-    lat_col = st.selectbox("위도 컬럼(lat)", options=df.columns, index=(list(df.columns).index(auto_lat) if auto_lat in df.columns else 0))
-    lon_col = st.selectbox("경도 컬럼(lon)", options=df.columns, index=(list(df.columns).index(auto_lon) if auto_lon in df.columns else 0))
-    name_col = st.selectbox("이름/제목(선택)", options=["(없음)"] + list(df.columns),
-                            index=(0 if auto_name is None else (list(df.columns).index(auto_name) + 1)))
-    name_col = None if name_col == "(없음)" else name_col
+    st.subheader("📁 데이터")
+    up = st.file_uploader("세계 CO₂ CSV (ISO3, 국가, CO2열 포함)", type=["csv"])
+if up is not None:
+    df = pd.read_csv(up)
+    # 최소 컬럼 추정
+    iso_col = next((c for c in df.columns if c.lower() in ["iso","iso3","country_code"]), None)
+    name_col = next((c for c in df.columns if "국가" in c or c.lower() in ["name","country"]), None)
+    co2_col = next((c for c in df.columns if "co2" in c.lower()), None)
+    if not (iso_col and name_col and co2_col):
+        st.warning("필요 컬럼(ISO/국가/CO2)을 찾지 못해 내장 예시 데이터로 대체합니다.")
+        up = None
 
-# 필수 체크
-if lat_col is None or lon_col is None:
-    st.error("위도/경도 컬럼을 지정해 주세요.")
-    st.stop()
+if up is None:
+    df = pd.DataFrame({
+        "국가":["중국","미국","인도","러시아","일본","독일","이란","한국","인도네시아","캐나다"],
+        "ISO":["CHN","USA","IND","RUS","JPN","DEU","IRN","KOR","IDN","CAN"],
+        "CO2(억 톤)":[100,50,30,18,12,8,8,7,7,6]
+    })
+    iso_col, name_col, co2_col = "ISO","국가","CO2(억 톤)"
 
-# ─────────────────────────────────────────────────────────
-# 🧮 컬럼 타입 분류
-# ─────────────────────────────────────────────────────────
-numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-text_cols = [c for c in df.columns if c not in numeric_cols]
+df["세계비중(%)"] = (df[co2_col]/df[co2_col].sum()*100).round(1)
+df = df.sort_values(co2_col, ascending=False).reset_index(drop=True)
+df["순위"] = df.index + 1
 
-# ─────────────────────────────────────────────────────────
-# 🎛️ 시각화 옵션 (사이드바)
-# ─────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("🎛️ 시각화 옵션")
-    projection = st.selectbox("지도 투영법", options=[
-        "natural earth", "equirectangular", "orthographic", "mercator", "kavrayskiy7",
-        "miller", "robinson", "sinusoidal"
-    ], index=0)
+# ─────────────────────────────────────────
+# 행복도/표정/속도 계산
+# ─────────────────────────────────────────
+def happiness(score:int)->float:
+    return float(np.clip(score/60.0, 0.0, 1.0))  # 만점 기준 60점
 
-    color_col = st.selectbox("색상 컬럼(선택)", options=["(없음)"] + list(df.columns), index=0)
-    color_col = None if color_col == "(없음)" else color_col
+def mood_class(h:float)->str:
+    if h < .25: return "sad"
+    if h < .55: return "neutral"
+    if h < .85: return "happy"
+    return "ecstatic"
 
-    size_col = st.selectbox("마커 크기 컬럼(선택, 숫자형 권장)", options=["(없음)"] + numeric_cols, index=0)
-    size_col = None if size_col == "(없음)" else size_col
+def spin_speed(h:float)->str:
+    # 행복할수록 더 빨리(작은 초)
+    return f"{max(20 - int(h*10)*2, 8)}s"
 
-    default_size = 8
-    min_size, max_size = st.slider("마커 크기 범위", 4, 40, (6, 14), help="size 컬럼이 없을 경우 가운데 값으로 그림")
-    marker_size = (min_size + max_size) / 2 if size_col is None else None
+def earth_size(h:float)->str:
+    # 행복할수록 살짝 커지도록
+    base = 200
+    size = int(base + h*70)  # 200px ~ 270px
+    return f"{size}px"
 
-# ─────────────────────────────────────────────────────────
-# 🔧 데이터 필터 (사이드바)
-# ─────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("🔎 데이터 필터")
-    # 텍스트 필터
-    search_col = st.selectbox("텍스트 검색 컬럼", options=["(없음)"] + text_cols, index=0)
-    search_term = ""
-    if search_col and search_col != "(없음)":
-        search_term = st.text_input("포함할 키워드(부분일치)", value="")
+def render_earth(h:float):
+    cls = mood_class(h)
+    size = earth_size(h)
+    spin = spin_speed(h)
+    html = f"""
+    <div class="earth-wrap">
+      <div class="earth {cls}" style="--size:{size}; --spin:{spin}">
+        <div class="ocean"></div>
+        <div class="land"></div>
+        <div class="cloud"></div>
+        <div class="cloud cloud2"></div>
+        <div class="face {cls}">
+          <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+          <div class="mouth"></div>
+          <div class="blushL"></div><div class="blushR"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sky">
+      <div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+    if cls=="sad": st.caption("지구가 힘들어해요… 행동이 필요해요.")
+    elif cls=="neutral": st.caption("지구가 조금 안정됐어요.")
+    elif cls=="happy": st.caption("지구가 미소 짓고 있어요! 💚")
+    else: st.caption("지구가 춤춰요! 💃✨")
 
-    # 범주형/숫자 필터
-    filter_col = st.selectbox("추가 필터 컬럼", options=["(없음)"] + list(df.columns), index=0)
-    selected_vals = None
-    num_range = None
-    if filter_col and filter_col != "(없음)":
-        if pd.api.types.is_numeric_dtype(df[filter_col]):
-            col_min, col_max = float(np.nanmin(df[filter_col].values)), float(np.nanmax(df[filter_col].values))
-            num_range = st.slider(f"{filter_col} 범위", float(col_min), float(col_max), (float(col_min), float(col_max)))
+# 콤보 계산: 8초 이내 연속 ‘좋은 행동’시 누적
+def apply_action(points:int, label:str, is_good:bool):
+    now = time.time()
+    if is_good:
+        if ss.last_ts and (now - ss.last_ts) <= 8:
+            ss.streak += 1
         else:
-            uniq = sorted([str(x) for x in df[filter_col].dropna().unique().tolist()])
-            selected_vals = st.multiselect(f"{filter_col} 값 선택", options=uniq, default=uniq)
-
-# ─────────────────────────────────────────────────────────
-# 🧹 필터 적용
-# ─────────────────────────────────────────────────────────
-df_view = df.copy()
-
-# 텍스트 검색
-if search_col and search_col != "(없음)" and search_term:
-    df_view = df_view[df_view[search_col].astype(str).str.contains(search_term, case=False, na=False)]
-
-# 숫자 범위 필터
-if filter_col and filter_col != "(없음)":
-    if pd.api.types.is_numeric_dtype(df_view[filter_col]):
-        lo, hi = num_range
-        df_view = df_view[(df_view[filter_col] >= lo) & (df_view[filter_col] <= hi)]
+            ss.streak = 1
+        bonus = max(0, ss.streak - 2)   # 3타부터 +1, 4타부터 +2 …
+        gained = points + bonus
+        ss.score = max(0, ss.score + gained)
+        st.balloons()
+        st.success(f"{label} +{points}점  (콤보 {ss.streak}타, 보너스 +{bonus})")
     else:
-        if selected_vals is not None:
-            df_view = df_view[df_view[filter_col].astype(str).isin(selected_vals)]
+        ss.streak = 0
+        lost = abs(points)
+        ss.score = max(0, ss.score - lost)
+        st.error(f"{label} -{lost}점")
+    ss.actions.append(label)
+    ss.last_ts = now
 
-# 위/경도 결측 제거
-df_view = df_view.dropna(subset=[lat_col, lon_col])
+# ─────────────────────────────────────────
+# 시작 화면: 세계 탄소배출 지도 + 상세
+# ─────────────────────────────────────────
+if ss.page == "start":
+    st.title("🌍 지구 키우기 — 환경오염의 심각성부터 보기")
+    st.markdown("국가별 **CO₂ 배출량** 지도를 보고, 어떤 곳에서 많은 배출이 일어나는지 확인해요. 그다음 **환경 행동**으로 지구를 행복하게 만들어봐요! 🌱")
 
-# 표시용 안내
-with st.container():
+    c_map, c_detail = st.columns([0.62, 0.38], gap="large")
+    with c_map:
+        fig = px.choropleth(
+            df, locations=iso_col, locationmode="ISO-3",
+            color=co2_col, hover_name=name_col,
+            hover_data=[co2_col,"세계비중(%)","순위"],
+            color_continuous_scale="Reds",
+            labels={co2_col:"CO₂ 배출(억 톤)"},
+            projection="natural earth"
+        )
+        fig.update_layout(height=470, margin=dict(l=0,r=0,t=0,b=0))
+        st.plotly_chart(fig, use_container_width=True)
+
+    with c_detail:
+        st.markdown('<div class="glass">', unsafe_allow_html=True)
+        sel = st.selectbox("국가 선택", options=df[name_col])
+        row = df.loc[df[name_col]==sel].iloc[0]
+        ss.selected_iso = row[iso_col]
+        st.subheader(f"🔍 {row[name_col]} 상세")
+        cA, cB, cC = st.columns(3)
+        cA.metric("CO₂(억 톤)", f"{row[co2_col]}")
+        cB.metric("세계 비중", f"{row['세계비중(%)']}%")
+        cC.metric("배출 순위", int(row["순위"]))
+        top = df.head(10)
+        fig_bar = px.bar(top, x=name_col, y=co2_col, color=name_col)
+        fig_bar.update_layout(showlegend=False, height=260, margin=dict(l=0,r=0,t=10,b=0))
+        st.plotly_chart(fig_bar, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
+    st.button("🌱 환경 실천하러 가기", on_click=go_to, args=("action",))
+
+# ─────────────────────────────────────────
+# 행동 화면: 좋은/나쁜 행동 + 콤보 + 지구 시각화
+# ─────────────────────────────────────────
+elif ss.page == "action":
+    st.header("🌱 환경 행동으로 지구를 행복하게 해주세요!")
+
+    good_actions = {
+        "분리수거 ♻️":5, "텀블러 사용 ☕":3, "대중교통 이용 🚌":4,
+        "일회용품 줄이기 🛍️":5, "계단 이용 🚶":2
+    }
+    bad_actions = {
+        "차 혼자 타기 🚗":-5, "에어컨 빵빵 ❄️":-4, "일회용 빨대 사용 🥤":-2
+    }
+
+    st.subheader("✅ 좋은 행동")
+    gcols = st.columns(len(good_actions))
+    for i,(label,pts) in enumerate(good_actions.items()):
+        with gcols[i]:
+            if st.button(f"{label} (+{pts})", use_container_width=True):
+                apply_action(pts, label, is_good=True)
+
+    st.subheader("⚠️ 나쁜 행동")
+    bcols = st.columns(len(bad_actions))
+    for i,(label,pts) in enumerate(bad_actions.items()):
+        with bcols[i]:
+            if st.button(f"{label} ({pts})", use_container_width=True):
+                apply_action(pts, label, is_good=False)
+
+    h = happiness(ss.score)
+    st.subheader(f"현재 점수: {ss.score}  |  콤보: {ss.streak}타")
+    st.progress(h, text="지구 행복도")
+
+    # 🌍 회전 속도/크기/표정이 행복도에 따라 바뀌는 지구
+    render_earth(h)
+
+    c1,c2 = st.columns(2)
+    with c1: st.button("📋 행동 기록 & 미션 보기", on_click=go_to, args=("mission",), use_container_width=True)
+    with c2: st.button("🏠 처음 화면으로", on_click=go_to, args=("start",), use_container_width=True)
+
+# ─────────────────────────────────────────
+# 기록/미션 화면
+# ─────────────────────────────────────────
+elif ss.page == "mission":
+    st.header("✅ 오늘 실천한 행동 기록")
     st.markdown('<div class="glass">', unsafe_allow_html=True)
-    st.subheader("📊 데이터 미리보기")
-    st.dataframe(df_view.head(30), use_container_width=True)
+    if ss.actions:
+        for i,a in enumerate(ss.actions,1):
+            st.write(f"{i}. {a}")
+    else:
+        st.write("아직 실천한 행동이 없어요 🌱")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────────────────
-# 🧰 툴팁 모드 선택: 기본 vs 고급(커스텀)
-# ─────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("🛠️ 툴팁 설정")
-    tooltip_mode = st.radio("툴팁 모드", ["기본(자동)", "고급(커스텀)"], index=0)
+    st.header("🎯 오늘의 환경 미션")
+    missions = [
+        "플라스틱 컵 1개 줄이기 🥤❌",
+        "전기 사용 1시간 줄이기 💡⚡",
+        "텀블러로 음료 마시기 ☕🌿",
+        "분리수거 철저히 하기 ♻️💚",
+        "대중교통으로 1회 이동하기 🚌"
+    ]
+    st.info(f"오늘의 미션: {missions[ss.score % len(missions)]}")
 
-# ─────────────────────────────────────────────────────────
-# 🌐 지도 그리기: 기본(자동) 툴팁
-# ─────────────────────────────────────────────────────────
-def make_base_fig(dataframe):
-    fig = px.scatter_geo(
-        dataframe,
-        lat=lat_col,
-        lon=lon_col,
-        hover_name=name_col if name_col else None,
-        color=color_col if color_col else None,
-        size=size_col if size_col else None,
-        size_max=max_size,
-        projection=projection
-    )
-    if size_col is None:
-        fig.update_traces(marker=dict(size=marker_size))
-    fig.update_geos(showcountries=True, showcoastlines=True)
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=680)
-    return fig
+    st.subheader("지금 지구 상태 미리보기")
+    render_earth(happiness(ss.score))
 
-if tooltip_mode == "기본(자동)":
-    exclude = {lat_col, lon_col}
-    if name_col: exclude.add(name_col)
-    hover_cols = [c for c in df_view.columns if c not in exclude]
-
-    fig = make_base_fig(df_view)
-    # NaN 예쁘게 처리
-    df_auto = df_view.copy()
-    df_auto[hover_cols] = df_auto[hover_cols].replace({np.nan: "-"})
-    fig.update_traces(hovertemplate=None)  # PX 기본 툴팁 사용
-    # PX의 hover_data를 강제하려면 다음처럼 새로 그림:
-    fig = px.scatter_geo(
-        df_auto,
-        lat=lat_col,
-        lon=lon_col,
-        hover_name=name_col if name_col else None,
-        hover_data=hover_cols,
-        color=color_col if color_col else None,
-        size=size_col if size_col else None,
-        size_max=max_size,
-        projection=projection
-    )
-    if size_col is None:
-        fig.update_traces(marker=dict(size=marker_size))
-    fig.update_geos(showcountries=True, showcoastlines=True)
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=680)
-
-    st.plotly_chart(fig, use_container_width=True)
-
-# ─────────────────────────────────────────────────────────
-# 🌐 지도 그리기: 고급(커스텀) 툴팁
-# ─────────────────────────────────────────────────────────
-else:
-    st.markdown("#### ⚙️ 고급 툴팁 구성")
-    # 순서 지정
-    candidate_cols = [c for c in df_view.columns if c not in {lat_col, lon_col}]
-    # 기본값: name_col이 있으면 맨 앞에, 이후 상위 4개
-    default_order = []
-    if name_col and name_col in candidate_cols:
-        default_order.append(name_col)
-    default_order += [c for c in candidate_cols if c != name_col][:5 - len(default_order)]
-    cols_in_order = st.multiselect("툴팁에 표시할 컬럼(순서대로)", candidate_cols, default=default_order)
-
-    if len(cols_in_order) == 0:
-        st.warning("최소 1개 이상의 컬럼을 선택하세요.")
-        st.stop()
-
-    # NaN 처리
-    df_tooltip = df_view.copy()
-    df_tooltip[cols_in_order] = df_tooltip[cols_in_order].replace({np.nan: "-"})
-
-    # 설정 폼
-    st.write("각 컬럼별 라벨/단위/소수점 자릿수(숫자형만) 설정")
-    labels, units, fmts = {}, {}, {}
-    for c in cols_in_order:
-        with st.container():
-            cols = st.columns([2, 1, 1])
-            labels[c] = cols[0].text_input(f"표시 라벨 - {c}", value=c, key=f"label_{c}")
-            units[c] = cols[1].text_input("단위", value="", key=f"unit_{c}")
-            if pd.api.types.is_numeric_dtype(df_tooltip[c]):
-                decimals = cols[2].number_input("소수점 자리", 0, 6, 2, key=f"dec_{c}")
-                fmts[c] = f":,.{int(decimals)}f"
-            else:
-                cols[2].markdown("&nbsp;")  # 자리 맞춤
-                fmts[c] = ""
-
-    # 도표 생성
-    fig = make_base_fig(df_tooltip)
-
-    # customdata & hovertemplate 구성
-    customdata = df_tooltip[cols_in_order].values
-    lines = []
-    for i, c in enumerate(cols_in_order):
-        label = labels[c]
-        unit = units[c]
-        fmt = fmts[c]  # '' 또는 ':,.2f' 같은 형태
-        value_expr = f"%{{customdata[{i}]{fmt}}}" if fmt else f"%{{customdata[{i}]}}"
-        # 이모지/불릿 등 자유롭게 바꿔도 됨
-        line = f"• <b>{label}</b>: {value_expr}{unit}<br>"
-        lines.append(line)
-    hover_template = "".join(lines) + "<extra></extra>"
-
-    fig.update_traces(customdata=customdata, hovertemplate=hover_template)
-    st.plotly_chart(fig, use_container_width=True)
-
-# ─────────────────────────────────────────────────────────
-# ℹ️ 메타 정보
-# ─────────────────────────────────────────────────────────
-with st.expander("ℹ️ 현재 설정 / 도움말"):
-    st.write("위도:", lat_col, " / 경도:", lon_col, " / 이름 컬럼:", name_col or "(없음)")
-    st.write("색상 컬럼:", color_col or "(없음)", " / 크기 컬럼:", size_col or "(없음)")
-    st.write(f"데이터 행 수(필터 적용): {len(df_view):,}")
-    st.markdown("""
-- **기본(자동) 툴팁**: 위도/경도(+이름)를 제외한 컬럼을 자동으로 모두 표시합니다.  
-- **고급(커스텀) 툴팁**: `customdata + hovertemplate`로 원하는 컬럼/순서/라벨/단위/소수점 자릿수까지 제어합니다.  
-- **팁**: 퍼센트는 원자료가 0~1 범위라면 100을 곱해 새로운 컬럼을 만들고 단위를 `%`로 지정하면 보기 좋아요.
-""")
+    c1,c2 = st.columns(2)
+    with c1: st.button("🌱 더 실천하러 가기", on_click=go_to, args=("action",), use_container_width=True)
+    with c2: st.button("🏠 처음 화면으로", on_click=go_to, args=("start",), use_container_width=True)
+        
