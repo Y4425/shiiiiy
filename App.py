@@ -1,5 +1,4 @@
 # App.py
-import os
 import time
 import numpy as np
 import pandas as pd
@@ -113,8 +112,9 @@ st.markdown("""
 ss = st.session_state
 defaults = {
     "page":"start", "score":0, "actions":[], "streak":0, "last_ts":0.0,
-    "effect_until":0.0, "effect_type":None,
-    "badges":[], "daily_target":20, "daily_achieved":False
+    "effect_until":0.0, "effect_type":None,    # 즉각 효과 표시용: 'good'/'bad'
+    "badges":[],                                # ② 배지 시스템
+    "daily_target":20, "daily_achieved":False   # ③ 일일 목표
 }
 for k,v in defaults.items():
     ss.setdefault(k,v)
@@ -128,86 +128,33 @@ def reset_game():
     ss.badges=[]; ss.daily_achieved=False
 
 # ──────────────────────────────
-# ✅ CSV 로더 (업로드 > 기본 경로) + 컬럼 자동 감지
+# 기본 데이터 (세계 탄소배출) & 국가별 2030 목표(예시)
 # ──────────────────────────────
-with st.sidebar:
-    st.subheader("📁 데이터 파일")
-    uploaded = st.file_uploader("CSV 업로드", type=["csv"])
+df = pd.DataFrame({
+  "국가":["중국","미국","인도","러시아","일본","독일","이란","한국","인도네시아","캐나다"],
+  "ISO":["CHN","USA","IND","RUS","JPN","DEU","IRN","KOR","IDN","CAN"],
+  "CO2(억 톤)":[100,50,30,18,12,8,8,7,7,6]
+})
+df["세계비중(%)"]=(df["CO2(억 톤)"]/df["CO2(억 톤)"].sum()*100).round(1)
+df["순위"]=df.index+1
 
-DEFAULT_PATH = "/mnt/data/TalkFile_World.csv.csv"
-if uploaded is not None:
-    df_raw = pd.read_csv(uploaded)
-    st.sidebar.success("업로드한 CSV 사용 중")
-elif os.path.exists(DEFAULT_PATH):
-    df_raw = pd.read_csv(DEFAULT_PATH)
-    st.sidebar.info(f"기본 파일 사용: {DEFAULT_PATH}")
-else:
-    st.sidebar.error("CSV 파일을 업로드하거나 기본 경로에 파일을 두세요.")
-    st.stop()
+# ④ 국가별 2030 감축 목표 (가상의 예시 값, 필요시 실제 데이터로 교체 가능)
+country_targets_2030 = {
+    "미국": -50, "유럽연합": -55, "독일": -65, "일본": -46, "한국": -40,
+    "중국": -18, "인도": -0, "캐나다": -40, "러시아": -25, "인도네시아": -31
+}
 
-if df_raw.empty:
-    st.error("CSV가 비어 있습니다.")
-    st.stop()
+# 전세계 총배출(기준) & 2030/2050 목표
+BASE_TOTAL = float(df["CO2(억 톤)"].sum())
+TARGET_2030_TOTAL = BASE_TOTAL * 0.60   # 전체 40% 감축 가정
+TARGET_2050_TOTAL = 0.0                 # 넷제로 가정
 
-def pick_first(cands, cols):
-    for c in cands:
-        if c in cols: return c
-    return None
-
-def detect_schema(df):
-    cols = list(df.columns)
-    iso  = pick_first(["ISO","iso","iso3","Iso3","country_code","CountryCode"], cols)
-    name = pick_first(["국가","나라","country","Country","name","Name"], cols)
-    co2  = pick_first(["CO2","co2","CO₂","배출","배출량","탄소","탄소배출","CO2(억 톤)","CO2_억톤"], cols)
-    lat  = pick_first(["lat","latitude","Lat","Latitude","위도"], cols)
-    lon  = pick_first(["lon","lng","longitude","Lon","Longitude","경도"], cols)
-    mode = "iso" if iso else ("latlon" if lat and lon else None)
-    return {"mode":mode, "iso":iso, "name":name, "co2":co2, "lat":lat, "lon":lon}
-
-meta = detect_schema(df_raw)
-
-# df(앱 내부 공용) 정규화: 기존 코드가 기대하는 컬럼들로 맞춤
-if meta["mode"] == "iso":
-    df = pd.DataFrame()
-    df["ISO"] = df_raw[meta["iso"]].astype(str)
-    df["국가"] = df_raw[meta["name"]].astype(str) if meta["name"] else df["ISO"]
-    # CO2가 숫자면 표준 컬럼으로 복사, 아니면 None
-    if meta["co2"] and pd.api.types.is_numeric_dtype(df_raw[meta["co2"]]):
-        df["CO2(억 톤)"] = pd.to_numeric(df_raw[meta["co2"]], errors="coerce").fillna(0)
-        df = df.groupby(["ISO","국가"], as_index=False)["CO2(억 톤)"].sum()
-        total = df["CO2(억 톤)"].sum()
-        if total > 0:
-            df["세계비중(%)"] = (df["CO2(억 톤)"]/total*100).round(1)
-        else:
-            df["세계비중(%)"] = 0.0
-        df = df.sort_values("CO2(억 톤)", ascending=False).reset_index(drop=True)
-        df["순위"] = df.index+1
-    else:
-        # CO2가 없거나 비수치면 기본 1값 부여(색상 없음), 비중/순위는 표시 안 함
-        df["CO2(억 톤)"] = np.nan
-        df["세계비중(%)"] = np.nan
-        df["순위"] = np.nan
-elif meta["mode"] == "latlon":
-    # 좌표 기반 산점도용 데이터
-    df = df_raw.copy()
-else:
-    st.error("CSV에서 ISO3 또는 위도/경도 컬럼을 찾지 못했어요.")
-    st.stop()
-
-# 전세계 총배출(기준) & 목표 계산 (가능할 때만)
-if meta["mode"]=="iso" and pd.api.types.is_numeric_dtype(df["CO2(억 톤)"]):
-    BASE_TOTAL = float(df["CO2(억 톤)"].sum())
-else:
-    BASE_TOTAL = np.nan
-TARGET_2030_TOTAL = BASE_TOTAL*0.60 if pd.notnull(BASE_TOTAL) else np.nan
-TARGET_2050_TOTAL = 0.0
-
+# ⑤ “나의 감축률(게임)” 매핑: 점수 60 -> 40% 감축으로 환산
 def reduction_percent(score:int)->float:
-    # 점수 60 -> 40% 감축으로 환산
-    return float(np.clip(score/60.0*40.0, 0, 40))
+    return float(np.clip(score/60.0*40.0, 0, 40))  # 0~40%
 
 # ──────────────────────────────
-# 유틸 함수(행복도, 지구 렌더, 배너/효과, 배지)
+# 유틸 함수(행복도, 지구 렌더, 배너/효과)
 # ──────────────────────────────
 def happiness(score): return float(np.clip(score/60.0,0,1))
 def mood_class(h): return "sad" if h<.25 else "neutral" if h<.55 else "happy" if h<.85 else "ecstatic"
@@ -215,7 +162,7 @@ def spin_speed(h): return f"{max(20-int(h*10)*2,8)}s"
 def earth_size(h): return f"{int(200+h*70)}px"
 
 def set_effect(kind:str, duration:float=2.0):
-    ss.effect_type = kind
+    ss.effect_type = kind       # 'good' or 'bad'
     ss.effect_until = now_ts() + duration
 
 def render_banner(kind:str):
@@ -249,10 +196,14 @@ def render_earth(h: float):
          "ecstatic":"지구가 춤춰요! 💃✨"}[cls]
     st.markdown(f'<div class="status-text {cls}">{txt}</div>', unsafe_allow_html=True)
 
+# ① 행동 팁 카드(토스트) — Streamlit 버전에 따라 st.toast 없으면 st.info로 대체
 def show_tip(msg:str):
-    try: st.toast(msg, icon="🌿")
-    except Exception: st.info(msg)
+    try:
+        st.toast(msg, icon="🌿")
+    except Exception:
+        st.info(msg)
 
+# ② 배지 부여
 def award_badge(code:str, label:str, color:str):
     if code not in ss.badges:
         ss.badges.append(code)
@@ -260,6 +211,7 @@ def award_badge(code:str, label:str, color:str):
 
 def render_badges():
     if not ss.badges: return
+    color_map={"green":"green","blue":"blue","gold":"gold","pink":"pink"}
     label_map={
         "score10":"첫걸음 10점 🌱","score30":"지구 친구 30점 💚","score60":"지구 영웅 60점 🌎",
         "combo3":"콤보 3타! ⚡","combo5":"콤보 5타!! 💥","daily":"오늘의 목표 달성 🎯"
@@ -267,16 +219,19 @@ def render_badges():
     st.write("🏅 배지")
     st.markdown('<div class="badge-wrap">', unsafe_allow_html=True)
     for code in ss.badges:
-        cls = "green"
-        if code in ["score30","combo3"]: cls="blue"
-        if code in ["score60","combo5"]: cls="gold"
-        if code in ["daily"]: cls="pink"
-        st.markdown(f'<span class="badge {cls}">{label_map.get(code,code)}</span>', unsafe_allow_html=True)
+        # 간단하게 색상 매핑
+        color="green"
+        if code in ["score30","combo3"]: color="blue"
+        if code in ["score60","combo5"]: color="gold"
+        if code in ["daily"]: color="pink"
+        st.markdown(f'<span class="badge {color_map[color]}">{label_map.get(code,code)}</span>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
+# ①+②+③: 행동 처리(팁/배지/일일목표/이펙트)
 def apply_action(points:int, label:str, is_good:bool, tip_msg:str=""):
     now = now_ts()
     if is_good:
+        # 콤보
         if ss.last_ts and now-ss.last_ts<=8: ss.streak+=1
         else: ss.streak=1
         bonus=max(0,ss.streak-2)
@@ -285,6 +240,8 @@ def apply_action(points:int, label:str, is_good:bool, tip_msg:str=""):
         st.balloons()
         st.success(f"{label} +{points}점 (콤보 {ss.streak}타, 보너스 +{bonus})")
         if tip_msg: show_tip(tip_msg)
+
+        # 콤보 배지
         if ss.streak>=3: award_badge("combo3","콤보 3타! ⚡","blue")
         if ss.streak>=5: award_badge("combo5","콤보 5타!! 💥","gold")
     else:
@@ -296,9 +253,13 @@ def apply_action(points:int, label:str, is_good:bool, tip_msg:str=""):
         if tip_msg: show_tip(tip_msg)
 
     ss.actions.append(label); ss.last_ts=now
+
+    # 점수 배지
     if ss.score>=10: award_badge("score10","첫걸음 10점 🌱","green")
     if ss.score>=30: award_badge("score30","지구 친구 30점 💚","blue")
     if ss.score>=60: award_badge("score60","지구 영웅 60점 🌎","gold")
+
+    # ③ 일일 목표 달성
     if (not ss.daily_achieved) and ss.score>=ss.daily_target:
         ss.daily_achieved=True
         award_badge("daily","오늘의 목표 달성 🎯","pink")
@@ -307,7 +268,7 @@ def apply_action(points:int, label:str, is_good:bool, tip_msg:str=""):
         st.success("🎉 축하해요! 오늘의 목표를 달성했어요!")
 
 # ──────────────────────────────
-# 사이드바: 네비/초기화 + 세계 평균 감축률(가상)
+# 사이드바: 네비/초기화 + ⑤ 세계 평균 감축률(가상) 조절
 # ──────────────────────────────
 with st.sidebar:
     st.header("🧭 메뉴")
@@ -315,65 +276,77 @@ with st.sidebar:
                     index={"start":0,"action":1,"mission":2}[ss.page])
     ss.page={"시작 화면":"start","행동 화면":"action","기록/미션":"mission"}[choice]
     st.divider()
-    world_avg = st.slider("전세계 평균 감축률(가상, %)", 0, 40, 18)
+    world_avg = st.slider("전세계 평균 감축률(가상, %)", 0, 40, 18)   # ⑤
     st.caption("게임 비교용 가상 수치입니다. (0~40%)")
     st.divider()
     st.button("🔄 초기화", on_click=reset_game)
 
 # ──────────────────────────────
-# 화면: 시작 (CSV 지도 + 탄소중립 목표 + 국가 비교)
+# 화면: 시작 (지도 + 탄소중립 목표 + 국가 목표 비교)
 # ──────────────────────────────
 if ss.page=="start":
     st.title("🌍 지구 키우기 — 환경오염의 심각성부터 보기")
-    st.markdown("CSV의 데이터를 **지도에 표시**하고, **탄소중립 목표**와 **나의 감축 기여도**를 비교해요! 🌱")
+    st.markdown("국가별 **CO₂ 배출량**을 확인하고, **탄소중립 목표**와 **나의 감축 기여도**를 비교해요! 🌱")
 
     c1,c2 = st.columns([0.62,0.38], gap="large")
-
     with c1:
-        if meta["mode"] == "iso":
-            fig=px.choropleth(
-                df, locations="ISO",
-                color="CO2(억 톤)" if "CO2(억 톤)" in df.columns and pd.api.types.is_numeric_dtype(df["CO2(억 톤)"]) else None,
-                hover_name="국가",
-                hover_data=[c for c in df.columns if c not in ["ISO"]],
-                color_continuous_scale="Reds",
-                labels={"CO2(억 톤)":"CO₂(억 톤)"},
-                projection="natural earth"
-            )
-        else:
-            fig=px.scatter_geo(
-                df, lat=meta["lat"], lon=meta["lon"],
-                hover_name=meta["name"] if meta["name"] in df.columns else None,
-                hover_data=[c for c in df.columns if c not in [meta["lat"],meta["lon"]]],
-            )
-            fig.update_traces(marker=dict(size=8))
+        fig=px.choropleth(
+            df, locations="ISO", color="CO2(억 톤)",
+            hover_name="국가", hover_data=["세계비중(%)","순위"],
+            color_continuous_scale="Reds", labels={"CO2(억 톤)":"CO₂(억 톤)"},
+            projection="natural earth"
+        )
         fig.update_layout(height=470, margin=dict(l=0,r=0,t=0,b=0))
         st.plotly_chart(fig, use_container_width=True)
 
     with c2:
         st.markdown('<div class="glass">', unsafe_allow_html=True)
         st.subheader("🎯 탄소중립 목표 (총배출 기준)")
-        if pd.notnull(BASE_TOTAL):
-            st.write(f"• **기준 총배출(합계)**: {BASE_TOTAL:,.0f}")
-            st.write(f"• **2030 목표(전세계)**: -40% ⇒ **{TARGET_2030_TOTAL:,.0f}**")
-            st.write("• **2050 목표**: Net Zero(0)")
-        else:
-            st.info("CSV에 총배출(숫자) 컬럼이 없어서 합계를 계산하지 않았어요.")
+        st.write(f"• **기준 총배출**: {BASE_TOTAL:.0f} 억 톤")
+        st.write(f"• **2030 목표(전세계)**: -40% ⇒ **{TARGET_2030_TOTAL:.0f} 억 톤**")
+        st.write(f"• **2050 목표**: **Net Zero(0)**")
 
-        my_red = reduction_percent(ss.score)
+        my_red = reduction_percent(ss.score)  # ⑤ 나의 감축률(게임)
         st.write(f"**나의 감축률(게임)**: {my_red:.1f}%  |  **전세계 평균(가상)**: {world_avg}%")
+        # 진행률 바 (2030 40% 대비)
         st.progress(my_red/40.0, text="2030 목표 대비 '나의' 진척도")
 
-        if meta["mode"]=="iso":
-            sel = st.selectbox("국가 선택", df["국가"])
-            row = df[df["국가"]==sel].iloc[0]
-            a,b,c = st.columns(3)
-            a.metric("CO₂(억 톤)", f"{row['CO2(억 톤)']}" if "CO2(억 톤)" in df.columns else "―")
-            b.metric("세계비중",  f"{row['세계비중(%)']}%" if "세계비중(%)" in df.columns else "―")
-            c.metric("배출 순위",  int(row["순위"]) if "순위" in df.columns and pd.notnull(row["순위"]) else "―")
+        st.divider()
+        sel=st.selectbox("국가 선택", df["국가"])
+        row=df.loc[df["국가"]==sel].iloc[0]
+        a,b,c=st.columns(3)
+        a.metric("CO₂(억 톤)",f"{row['CO2(억 톤)']}")
+        b.metric("세계비중",f"{row['세계비중(%)']}%")
+        c.metric("배출 순위",int(row["순위"]))
+
+        # ④ 국가별 2030 목표 비교 (예시값 존재 시)
+        st.markdown("##### 🇺🇳 2030 국가 감축 목표(예시) 비교")
+        target = country_targets_2030.get(sel, None)  # 음수(감축%) 기대
+        if target is not None:
+            st.info(f"**{sel}의 2030 목표**: {target}%")
+            # 막대 비교 (내 감축률 vs 국가 목표 vs 세계 평균)
+            cmp_df = pd.DataFrame({
+                "항목":["나의 감축률(게임)","해당 국가 목표","전세계 평균(가상)"],
+                "감축률(%)":[my_red, abs(target), world_avg]
+            })
+            bar = px.bar(cmp_df, x="항목", y="감축률(%)", color="항목",
+                         range_y=[0, 40], text="감축률(%)")
+            bar.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
+            bar.update_layout(showlegend=False, height=260, margin=dict(l=0,r=0,t=10,b=0))
+            st.plotly_chart(bar, use_container_width=True)
         else:
-            st.caption("좌표 기반 데이터라 국가 상세 메트릭은 생략했어요. (원본 행 미리보기)")
-            st.dataframe(df.head(20), use_container_width=True)
+            st.warning("이 국가의 예시 목표가 없어요. (필요하면 목표 %를 직접 입력해 보세요)")
+            user_tgt = st.slider("직접 입력: 2030 감축 목표(%)", 0, 60, 30)
+            cmp_df = pd.DataFrame({
+                "항목":["나의 감축률(게임)","사용자 입력 목표","전세계 평균(가상)"],
+                "감축률(%)":[my_red, user_tgt, world_avg]
+            })
+            bar = px.bar(cmp_df, x="항목", y="감축률(%)", color="항목",
+                         range_y=[0, 60], text="감축률(%)")
+            bar.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
+            bar.update_layout(showlegend=False, height=260, margin=dict(l=0,r=0,t=10,b=0))
+            st.plotly_chart(bar, use_container_width=True)
+
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.divider()
@@ -385,9 +358,11 @@ if ss.page=="start":
 elif ss.page=="action":
     st.header("🌱 환경 행동으로 지구를 행복하게 해주세요!")
 
+    # 즉각 효과 배너 (효과 시간 동안만 표시)
     if ss.effect_type and ss.effect_until > now_ts():
         render_banner(ss.effect_type)
 
+    # ① 행동별 팁 메시지
     good_actions = {
         "분리수거 ♻️": (5, "깨끗이 헹구고 분리하면 재활용률이 올라가요!"),
         "텀블러 사용 ☕": (3, "텀블러 1회 = 일회용 컵 1개 절감!"),
@@ -415,11 +390,15 @@ elif ss.page=="action":
             if st.button(f"{label} ({pts})", use_container_width=True):
                 apply_action(pts, label, False, tip)
 
+    # 현재 상태
     h = happiness(ss.score)
     st.subheader(f"현재 점수: {ss.score} | 콤보: {ss.streak}타 | 오늘 목표: {ss.daily_target}점" + (" ✅" if ss.daily_achieved else ""))
     st.progress(h, text="지구 행복도")
 
+    # 🌍 지구 (행복/아픔 즉각 효과 포함)
     render_earth(h)
+
+    # ② 배지 보여주기
     render_badges()
 
     c1,c2 = st.columns(2)
@@ -457,3 +436,4 @@ elif ss.page=="mission":
     c1,c2=st.columns(2)
     with c1: st.button("🌱 더 실천하러 가기", on_click=go_to, args=("action",), use_container_width=True)
     with c2: st.button("🏠 처음 화면으로", on_click=go_to, args=("start",), use_container_width=True)
+      
