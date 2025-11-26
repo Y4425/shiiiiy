@@ -7,6 +7,7 @@ import random
 # -------------------------------------------------
 # 기본 설정 & 공통 스타일
 # -------------------------------------------------
+st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
 st.set_page_config(
     page_title="데이터 가명처리 · 익명처리 · 동형암호 실습",
     layout="centered"
