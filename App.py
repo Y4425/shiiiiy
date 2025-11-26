@@ -190,7 +190,7 @@ with tab1:
     if st.button("🔐 가명처리 실행하기"):
         masked_name = mask_name(name)
         masked_rrn = mask_rrn(rrn)
-        masked_phone = mask_phone(콜)
+        masked_phone = mask_phone(phone)
         pseudo_id = make_pseudo_id(rrn + phone, salt)
 
         result_df = pd.DataFrame(
