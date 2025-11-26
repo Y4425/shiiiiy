@@ -42,35 +42,30 @@ with tab1:
     def mask_name(n):
         if len(n) <= 1:
             return "*"
-        # 첫 글자만 남기고 나머지 전부 *
         return n[0] + "*" * (len(n) - 1)
 
     def mask_rrn(r):
-        # 앞 6자리 + "-******" 형태로 마스킹
         if len(r) >= 8:
             return r[:8] + "******"
         return r
 
     def mask_phone(p):
-        # 중간 4자리 마스킹
         if "-" in p:
             parts = p.split("-")
             if len(parts) == 3:
                 return f"{parts[0]}-****-{parts[2]}"
-        # 단순한 경우: 뒤 4자리만 남기기
         if len(p) > 4:
             return "*" * (len(p) - 4) + p[-4:]
         return p
 
     def make_pseudo_id(text, salt=""):
-        # SHA-256 해시 기반 가명 ID
         base = (text + salt).encode("utf-8")
         return hashlib.sha256(base).hexdigest()
 
     if st.button("가명처리 실행"):
         masked_name = mask_name(name)
         masked_rrn = mask_rrn(rrn)
-        masked_phone = mask_phone(콜)
+        masked_phone = mask_phone(콜)   # ★ 여기 반드시 phone 변수!
 
         pseudo_id = make_pseudo_id(rrn + phone, salt)
 
@@ -107,7 +102,6 @@ with tab2:
         """
     )
 
-    # 예시 데이터 (작은 의료 데이터셋)
     raw_data = pd.DataFrame(
         {
             "나이": [23, 25, 27, 34, 36, 42, 44, 52, 55, 60],
@@ -141,7 +135,6 @@ with tab2:
     anon_df["나이_구간"] = anon_df["나이"].apply(lambda x: generalize_age(x, age_group_size))
     anon_df["우편번호_일반화"] = anon_df["우편번호"].apply(lambda x: generalize_zip(x, zip_keep))
 
-    # k-익명성 계산: (나이_구간, 우편번호_일반화) 그룹별 인원 수
     grouping_cols = ["나이_구간", "우편번호_일반화"]
     group_counts = (
         anon_df.groupby(grouping_cols)
@@ -149,7 +142,6 @@ with tab2:
         .reset_index(name="그룹_인원수(k)")
     )
 
-    # 각 행에 그룹 인원 수 붙이기
     anon_df = anon_df.merge(group_counts, on=grouping_cols, how="left")
 
     st.write("### 익명화(일반화) 결과")
@@ -181,15 +173,6 @@ with tab3:
         """
         **동형암호(Homomorphic Encryption)**는  
         🔐 **데이터를 암호화한 상태 그대로** 연산(더하기, 곱하기 등)을 할 수 있게 해 주는 암호입니다.
-
-        예를 들어,  
-        - 병원 데이터(혈압, 혈당 수치 등)를 암호화해서 클라우드에 저장해도  
-        - 클라우드 서버가 **평문을 보지 못한 상태**에서 합계 또는 평균을 계산해 줄 수 있다면  
-        개인정보 보호에 큰 도움이 됩니다.
-
-        여기서는 아주 단순한 *교육용 장난감* 예시로  
-        “암호 상태에서 덧셈을 해도, 복호화하면 평문 덧셈 결과가 나온다”는 느낌만 살펴봅니다.  
-        (실제 동형암호는 훨씬 복잡하고, 이 예시는 보안적으로 안전하지 않습니다!)
         """
     )
 
@@ -202,17 +185,14 @@ with tab3:
     st.caption("※ 조건: 두 평문 합 m1 + m2 < K 범위 안에 있어야 제대로 동작합니다.")
 
     if st.button("동형암호(장난감) 연산 시뮬레이션"):
-        # 장난감 암호화: C = m + r*K  (r은 아무 큰 정수)
         r1 = random.randint(1, 10)
         r2 = random.randint(1, 10)
 
         C1 = m1 + r1 * key
         C2 = m2 + r2 * key
 
-        # 서버(제3자)는 C1, C2만 알고 있다고 가정하고, 덧셈만 수행
         C_sum = C1 + C2
 
-        # 복호화: C mod K = m (단, m < K)
         m1_dec = C1 % key
         m2_dec = C2 % key
         m_sum_dec = C_sum % key
