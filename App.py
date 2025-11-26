@@ -1,439 +1,272 @@
-# App.py
-import time
-import numpy as np
-import pandas as pd
-import plotly.express as px
 import streamlit as st
+import pandas as pd
+import numpy as np
+import hashlib
+import random
 
-# ──────────────────────────────
-# 페이지 기본 설정 + CSS
-# ──────────────────────────────
-st.set_page_config(page_title="🌍 지구 키우기", layout="wide", page_icon="🌱")
-st.markdown("""
-<style>
-:root{
-  --ink:#004d40; --glass:rgba(255,255,255,.65);
-  --good:#2e7d32; --mid:#f9a825; --bad:#c62828;
-}
-*{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;}
-.stApp{background:linear-gradient(180deg,#e0f7fa 0%,#f1f8e9 100%); color:var(--ink);}
-.glass{background:var(--glass); backdrop-filter:blur(6px); border-radius:14px; padding:16px; border:1px solid rgba(0,0,0,.06); margin-bottom:12px;}
-.center{text-align:center}
+st.set_page_config(
+    page_title="데이터 익명처리 · 동형암호 실습",
+    layout="centered"
+)
 
-/* 🌍 회전하는 지구 */
-.earth-wrap{display:flex; align-items:center; justify-content:center; width:100%; margin:8px 0;}
-.earth{position:relative; border-radius:50%; overflow:hidden;
-  width:var(--size,220px); height:var(--size,220px);
-  box-shadow:0 22px 44px rgba(0,0,0,.16), inset -14px -14px 24px rgba(0,0,0,.12);
-  animation: spin var(--spin,16s) linear infinite;
-}
-.ocean{position:absolute; inset:0; border-radius:50%;
-  background:radial-gradient(60% 60% at 35% 35%, #7bd2ff 0%, #42b6ea 25%, #168dd6 60%, #0a6bb5 100%);
-}
-.land,.land:before,.land:after{
-  position:absolute; content:""; background:#49b675; border-radius:40% 60% 55% 45% / 50% 45% 55% 50%; opacity:.95;
-}
-.land{width:56%; height:36%; left:10%; top:22%; transform:rotate(-8deg);}
-.land:before{width:28%; height:20%; left:62%; top:-8%; transform:rotate(12deg);}
-.land:after{width:35%; height:22%; left:58%; top:55%; transform:rotate(-18deg);}
+st.title("🧬 데이터 가명처리 · 익명처리 · 동형암호 실습 앱")
+st.caption(
+    "코딩 동아리 프로젝트용 · 개인정보 보호 기술(가명처리, 익명화, 동형암호 개념)을 "
+    "직접 눈으로 확인해 볼 수 있는 교육용 웹앱입니다."
+)
 
-/* 구름 */
-.cloud,.cloud:before{position:absolute; content:""; background:linear-gradient(#fff,#f6f6f6); border-radius:999px; opacity:.82;}
-.cloud{width:48%; height:16%; left:-50%; top:28%; animation: drift 16s linear infinite;}
-.cloud:before{width:36%; height:12%; left:40%; top:-24%;}
-.cloud2{width:36%; height:12%; left:120%; top:58%; animation: drift2 22s linear infinite;}
-@keyframes drift{from{transform:translateX(0)}to{transform:translateX(220%)}}
-@keyframes drift2{from{transform:translateX(0)}to{transform:translateX(-260%)}}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+tab1, tab2, tab3 = st.tabs(["1️⃣ 가명처리", "2️⃣ 익명·비식별화", "3️⃣ 동형암호(개념 실습)"])
 
-/* 표정 */
-.face{position:absolute; inset:0;}
-.eyes{position:absolute; top:42%; left:50%; width:52%; height:28%; transform:translateX(-50%); display:flex; justify-content:space-between; padding:0 16%;}
-.eye{width:16px; height:16px; background:#1e2a2a; border-radius:50%;}
-.mouth{position:absolute; top:60%; left:50%; transform:translateX(-50%); width:44%; height:28px;}
-.mouth:before{content:""; position:absolute; inset:0; background:#1e2a2a; height:10px; border-radius:0 0 60px 60px / 0 0 50px 50px; transition:.35s;}
-.sad .mouth:before{height:12px; border-radius:60px 60px 0 0 / 50px 50px 0 0; transform:rotate(180deg);}
-.happy .mouth:before{height:18px;}
-.ecstatic .mouth:before{height:26px;}
-.earth.happy{box-shadow:0 24px 46px rgba(0,0,0,.18),0 0 0 8px rgba(46,125,50,.10) inset;}
-.earth.ecstatic{box-shadow:0 28px 52px rgba(0,0,0,.2),0 0 0 10px rgba(46,125,50,.16) inset; animation: spin var(--spin,10s) linear infinite;}
+# -------------------------------------------------
+# 1. 가명처리 탭
+# -------------------------------------------------
+with tab1:
+    st.subheader("1️⃣ 가명처리 (Pseudonymization) 실습")
 
-/* 반짝이는 별 */
-.sky{position:relative; height:38px; margin-top:4px;}
-.star{position:absolute; width:6px; height:6px; border-radius:50%; background:radial-gradient(#fff,rgba(255,255,255,.1)); animation: twinkle 1.6s ease-in-out infinite; opacity:.0;}
-.star:nth-child(1){left:20%; animation-delay:.1s;}
-.star:nth-child(2){left:38%; animation-delay:.5s;}
-.star:nth-child(3){left:52%; animation-delay:.2s;}
-.star:nth-child(4){left:66%; animation-delay:.9s;}
-.star:nth-child(5){left:82%; animation-delay:.4s;}
-@keyframes twinkle{0%,100%{opacity:0}50%{opacity:1;transform:scale(1.4)}}
+    st.markdown(
+        """
+        **가명처리**란, 직접적인 식별자(이름, 주민번호 등)를 다른 값으로 치환해서  
+        원래 누구였는지 쉽게 알 수 없게 만드는 방법입니다.  
+        (예: 이름 → 무작위 ID, 주민번호 → 해시값 등)
+        """
+    )
 
-/* 크고 선명한 상태 텍스트 */
-.status-text{font-size:26px;font-weight:800;text-align:center;margin-top:10px;}
-.status-text.sad{color:var(--bad);}
-.status-text.neutral{color:#00695c;}
-.status-text.happy{color:var(--good);}
-.status-text.ecstatic{color:#1b5e20;text-shadow:0 0 10px rgba(46,125,50,.25);}
+    col1, col2 = st.columns(2)
+    with col1:
+        name = st.text_input("이름 입력", value="홍길동")
+        rrn = st.text_input("주민번호(예시)", value="000101-3123456")
+        phone = st.text_input("전화번호(예시)", value="010-1234-5678")
+    with col2:
+        salt = st.text_input("가명 ID 생성을 위한 비밀키(salt)", value="my_secret_key")
 
-/* 🔔 즉각 효과: 축하/경고 배너 & 지구 이펙트 */
-.banner{
-  padding:12px 16px; border-radius:12px; font-weight:800; font-size:18px;
-  margin:10px 0; display:flex; align-items:center; gap:8px;
-}
-.banner.good{background:#e8f5e9; color:#1b5e20; border:1px solid rgba(27,94,32,.25); box-shadow:0 0 0 6px rgba(27,94,32,.08) inset;}
-.banner.bad{background:#ffebee; color:#b71c1c; border:1px solid rgba(183,28,28,.25); box-shadow:0 0 0 6px rgba(183,28,28,.08) inset;}
+    def mask_name(n):
+        if len(n) <= 1:
+            return "*"
+        # 첫 글자만 남기고 나머지 전부 *
+        return n[0] + "*" * (len(n) - 1)
 
-.earth.flash-good{animation: glowPulse .8s ease-in-out 0s 2;}
-@keyframes glowPulse{
-  0%,100%{box-shadow:0 22px 44px rgba(0,0,0,.16), 0 0 0 10px rgba(76,175,80,.0) inset;}
-  50%{box-shadow:0 22px 44px rgba(0,0,0,.16), 0 0 0 14px rgba(76,175,80,.35) inset;}
-}
-.earth.flash-bad{animation: shake .35s ease-in-out 0s 3;}
-@keyframes shake{
-  0%,100%{transform:translateX(0) rotate(0deg)}
-  25%{transform:translateX(-6px) rotate(-1.5deg)}
-  50%{transform:translateX(6px) rotate(1.5deg)}
-  75%{transform:translateX(-5px) rotate(-1deg)}
-}
+    def mask_rrn(r):
+        # 앞 6자리 + "-******" 형태로 마스킹
+        if len(r) >= 8:
+            return r[:8] + "******"
+        return r
 
-/* 배지 표시 */
-.badge-wrap{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 12px;}
-.badge{padding:6px 10px; border-radius:999px; font-weight:700; font-size:13px; border:1px solid rgba(0,0,0,.08);}
-.badge.green{background:#e8f5e9; color:#1b5e20;}
-.badge.blue{background:#e3f2fd; color:#0d47a1;}
-.badge.gold{background:#fff8e1; color:#b36b00;}
-.badge.pink{background:#fce4ec; color:#ad1457;}
-</style>
-""", unsafe_allow_html=True)
+    def mask_phone(p):
+        # 중간 4자리 마스킹
+        if "-" in p:
+            parts = p.split("-")
+            if len(parts) == 3:
+                return f"{parts[0]}-****-{parts[2]}"
+        # 단순한 경우: 뒤 4자리만 남기기
+        if len(p) > 4:
+            return "*" * (len(p) - 4) + p[-4:]
+        return p
 
-# ──────────────────────────────
-# 세션 상태 초기화
-# ──────────────────────────────
-ss = st.session_state
-defaults = {
-    "page":"start", "score":0, "actions":[], "streak":0, "last_ts":0.0,
-    "effect_until":0.0, "effect_type":None,    # 즉각 효과 표시용: 'good'/'bad'
-    "badges":[],                                # ② 배지 시스템
-    "daily_target":20, "daily_achieved":False   # ③ 일일 목표
-}
-for k,v in defaults.items():
-    ss.setdefault(k,v)
+    def make_pseudo_id(text, salt=""):
+        # SHA-256 해시 기반 가명 ID
+        base = (text + salt).encode("utf-8")
+        return hashlib.sha256(base).hexdigest()
 
-def go_to(p): ss.page=p
-def now_ts(): return time.time()
+    if st.button("가명처리 실행"):
+        masked_name = mask_name(name)
+        masked_rrn = mask_rrn(rrn)
+        masked_phone = mask_phone(콜)
 
-def reset_game():
-    ss.page="start"; ss.score=0; ss.actions=[]; ss.streak=0
-    ss.last_ts=0.0; ss.effect_until=0.0; ss.effect_type=None
-    ss.badges=[]; ss.daily_achieved=False
+        pseudo_id = make_pseudo_id(rrn + phone, salt)
 
-# ──────────────────────────────
-# 기본 데이터 (세계 탄소배출) & 국가별 2030 목표(예시)
-# ──────────────────────────────
-df = pd.DataFrame({
-  "국가":["중국","미국","인도","러시아","일본","독일","이란","한국","인도네시아","캐나다"],
-  "ISO":["CHN","USA","IND","RUS","JPN","DEU","IRN","KOR","IDN","CAN"],
-  "CO2(억 톤)":[100,50,30,18,12,8,8,7,7,6]
-})
-df["세계비중(%)"]=(df["CO2(억 톤)"]/df["CO2(억 톤)"].sum()*100).round(1)
-df["순위"]=df.index+1
-
-# ④ 국가별 2030 감축 목표 (가상의 예시 값, 필요시 실제 데이터로 교체 가능)
-country_targets_2030 = {
-    "미국": -50, "유럽연합": -55, "독일": -65, "일본": -46, "한국": -40,
-    "중국": -18, "인도": -0, "캐나다": -40, "러시아": -25, "인도네시아": -31
-}
-
-# 전세계 총배출(기준) & 2030/2050 목표
-BASE_TOTAL = float(df["CO2(억 톤)"].sum())
-TARGET_2030_TOTAL = BASE_TOTAL * 0.60   # 전체 40% 감축 가정
-TARGET_2050_TOTAL = 0.0                 # 넷제로 가정
-
-# ⑤ “나의 감축률(게임)” 매핑: 점수 60 -> 40% 감축으로 환산
-def reduction_percent(score:int)->float:
-    return float(np.clip(score/60.0*40.0, 0, 40))  # 0~40%
-
-# ──────────────────────────────
-# 유틸 함수(행복도, 지구 렌더, 배너/효과)
-# ──────────────────────────────
-def happiness(score): return float(np.clip(score/60.0,0,1))
-def mood_class(h): return "sad" if h<.25 else "neutral" if h<.55 else "happy" if h<.85 else "ecstatic"
-def spin_speed(h): return f"{max(20-int(h*10)*2,8)}s"
-def earth_size(h): return f"{int(200+h*70)}px"
-
-def set_effect(kind:str, duration:float=2.0):
-    ss.effect_type = kind       # 'good' or 'bad'
-    ss.effect_until = now_ts() + duration
-
-def render_banner(kind:str):
-    if kind=="good":
-        st.markdown('<div class="banner good">✨ 너무 좋아요! 지구가 환하게 빛나요!</div>', unsafe_allow_html=True)
-    elif kind=="bad":
-        st.markdown('<div class="banner bad">⚠️ 경고! 지구가 아파하고 있어요… 행동을 바꿔주세요.</div>', unsafe_allow_html=True)
-
-def render_earth(h: float):
-    cls=mood_class(h); size=earth_size(h); spin=spin_speed(h)
-    extra = ""
-    if ss.effect_type and ss.effect_until > now_ts():
-        extra = " flash-good" if ss.effect_type=="good" else " flash-bad"
-    html=f"""
-    <div class="earth-wrap">
-      <div class="earth {cls}{extra}" style="--size:{size};--spin:{spin}">
-        <div class="ocean"></div><div class="land"></div>
-        <div class="cloud"></div><div class="cloud cloud2"></div>
-        <div class="face {cls}">
-          <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
-          <div class="mouth"></div>
-        </div>
-      </div>
-    </div>
-    <div class="sky"><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div></div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
-    txt={"sad":"지구가 힘들어해요… 행동이 필요해요.",
-         "neutral":"지구가 조금 안정됐어요.",
-         "happy":"지구가 미소 짓고 있어요! 💚",
-         "ecstatic":"지구가 춤춰요! 💃✨"}[cls]
-    st.markdown(f'<div class="status-text {cls}">{txt}</div>', unsafe_allow_html=True)
-
-# ① 행동 팁 카드(토스트) — Streamlit 버전에 따라 st.toast 없으면 st.info로 대체
-def show_tip(msg:str):
-    try:
-        st.toast(msg, icon="🌿")
-    except Exception:
-        st.info(msg)
-
-# ② 배지 부여
-def award_badge(code:str, label:str, color:str):
-    if code not in ss.badges:
-        ss.badges.append(code)
-        show_tip(f"배지 획득! {label}")
-
-def render_badges():
-    if not ss.badges: return
-    color_map={"green":"green","blue":"blue","gold":"gold","pink":"pink"}
-    label_map={
-        "score10":"첫걸음 10점 🌱","score30":"지구 친구 30점 💚","score60":"지구 영웅 60점 🌎",
-        "combo3":"콤보 3타! ⚡","combo5":"콤보 5타!! 💥","daily":"오늘의 목표 달성 🎯"
-    }
-    st.write("🏅 배지")
-    st.markdown('<div class="badge-wrap">', unsafe_allow_html=True)
-    for code in ss.badges:
-        # 간단하게 색상 매핑
-        color="green"
-        if code in ["score30","combo3"]: color="blue"
-        if code in ["score60","combo5"]: color="gold"
-        if code in ["daily"]: color="pink"
-        st.markdown(f'<span class="badge {color_map[color]}">{label_map.get(code,code)}</span>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ①+②+③: 행동 처리(팁/배지/일일목표/이펙트)
-def apply_action(points:int, label:str, is_good:bool, tip_msg:str=""):
-    now = now_ts()
-    if is_good:
-        # 콤보
-        if ss.last_ts and now-ss.last_ts<=8: ss.streak+=1
-        else: ss.streak=1
-        bonus=max(0,ss.streak-2)
-        ss.score=max(0, ss.score + points + bonus)
-        set_effect("good",1.8)
-        st.balloons()
-        st.success(f"{label} +{points}점 (콤보 {ss.streak}타, 보너스 +{bonus})")
-        if tip_msg: show_tip(tip_msg)
-
-        # 콤보 배지
-        if ss.streak>=3: award_badge("combo3","콤보 3타! ⚡","blue")
-        if ss.streak>=5: award_badge("combo5","콤보 5타!! 💥","gold")
-    else:
-        ss.streak=0
-        lost=abs(points)
-        ss.score=max(0, ss.score - lost)
-        set_effect("bad",1.4)
-        st.error(f"{label} -{lost}점")
-        if tip_msg: show_tip(tip_msg)
-
-    ss.actions.append(label); ss.last_ts=now
-
-    # 점수 배지
-    if ss.score>=10: award_badge("score10","첫걸음 10점 🌱","green")
-    if ss.score>=30: award_badge("score30","지구 친구 30점 💚","blue")
-    if ss.score>=60: award_badge("score60","지구 영웅 60점 🌎","gold")
-
-    # ③ 일일 목표 달성
-    if (not ss.daily_achieved) and ss.score>=ss.daily_target:
-        ss.daily_achieved=True
-        award_badge("daily","오늘의 목표 달성 🎯","pink")
-        set_effect("good",2.0)
-        st.balloons()
-        st.success("🎉 축하해요! 오늘의 목표를 달성했어요!")
-
-# ──────────────────────────────
-# 사이드바: 네비/초기화 + ⑤ 세계 평균 감축률(가상) 조절
-# ──────────────────────────────
-with st.sidebar:
-    st.header("🧭 메뉴")
-    choice=st.radio("화면 이동", ["시작 화면","행동 화면","기록/미션"],
-                    index={"start":0,"action":1,"mission":2}[ss.page])
-    ss.page={"시작 화면":"start","행동 화면":"action","기록/미션":"mission"}[choice]
-    st.divider()
-    world_avg = st.slider("전세계 평균 감축률(가상, %)", 0, 40, 18)   # ⑤
-    st.caption("게임 비교용 가상 수치입니다. (0~40%)")
-    st.divider()
-    st.button("🔄 초기화", on_click=reset_game)
-
-# ──────────────────────────────
-# 화면: 시작 (지도 + 탄소중립 목표 + 국가 목표 비교)
-# ──────────────────────────────
-if ss.page=="start":
-    st.title("🌍 지구 키우기 — 환경오염의 심각성부터 보기")
-    st.markdown("국가별 **CO₂ 배출량**을 확인하고, **탄소중립 목표**와 **나의 감축 기여도**를 비교해요! 🌱")
-
-    c1,c2 = st.columns([0.62,0.38], gap="large")
-    with c1:
-        fig=px.choropleth(
-            df, locations="ISO", color="CO2(억 톤)",
-            hover_name="국가", hover_data=["세계비중(%)","순위"],
-            color_continuous_scale="Reds", labels={"CO2(억 톤)":"CO₂(억 톤)"},
-            projection="natural earth"
+        result_df = pd.DataFrame(
+            {
+                "항목": ["이름", "주민번호", "전화번호", "가명 ID(해시)"],
+                "원본 값": [name, rrn, phone, "(해시로만 저장)"],
+                "가명/마스킹 결과": [masked_name, masked_rrn, masked_phone, pseudo_id[:16] + "..."],
+            }
         )
-        fig.update_layout(height=470, margin=dict(l=0,r=0,t=0,b=0))
-        st.plotly_chart(fig, use_container_width=True)
 
-    with c2:
-        st.markdown('<div class="glass">', unsafe_allow_html=True)
-        st.subheader("🎯 탄소중립 목표 (총배출 기준)")
-        st.write(f"• **기준 총배출**: {BASE_TOTAL:.0f} 억 톤")
-        st.write(f"• **2030 목표(전세계)**: -40% ⇒ **{TARGET_2030_TOTAL:.0f} 억 톤**")
-        st.write(f"• **2050 목표**: **Net Zero(0)**")
+        st.success("가명처리 결과입니다.")
+        st.dataframe(result_df, use_container_width=True)
 
-        my_red = reduction_percent(ss.score)  # ⑤ 나의 감축률(게임)
-        st.write(f"**나의 감축률(게임)**: {my_red:.1f}%  |  **전세계 평균(가상)**: {world_avg}%")
-        # 진행률 바 (2030 40% 대비)
-        st.progress(my_red/40.0, text="2030 목표 대비 '나의' 진척도")
+        st.info(
+            "※ 실제 시스템에서는 원본 주민번호나 전화번호를 그대로 저장하지 않고, "
+            "이런 해시값(가명 ID)만 저장해서 개인정보 유출 위험을 줄입니다."
+        )
 
-        st.divider()
-        sel=st.selectbox("국가 선택", df["국가"])
-        row=df.loc[df["국가"]==sel].iloc[0]
-        a,b,c=st.columns(3)
-        a.metric("CO₂(억 톤)",f"{row['CO2(억 톤)']}")
-        b.metric("세계비중",f"{row['세계비중(%)']}%")
-        c.metric("배출 순위",int(row["순위"]))
+# -------------------------------------------------
+# 2. 익명·비식별화 탭 (k-익명성 직관)
+# -------------------------------------------------
+with tab2:
+    st.subheader("2️⃣ 익명·비식별화 (k-익명성 직관) 실습")
 
-        # ④ 국가별 2030 목표 비교 (예시값 존재 시)
-        st.markdown("##### 🇺🇳 2030 국가 감축 목표(예시) 비교")
-        target = country_targets_2030.get(sel, None)  # 음수(감축%) 기대
-        if target is not None:
-            st.info(f"**{sel}의 2030 목표**: {target}%")
-            # 막대 비교 (내 감축률 vs 국가 목표 vs 세계 평균)
-            cmp_df = pd.DataFrame({
-                "항목":["나의 감축률(게임)","해당 국가 목표","전세계 평균(가상)"],
-                "감축률(%)":[my_red, abs(target), world_avg]
-            })
-            bar = px.bar(cmp_df, x="항목", y="감축률(%)", color="항목",
-                         range_y=[0, 40], text="감축률(%)")
-            bar.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
-            bar.update_layout(showlegend=False, height=260, margin=dict(l=0,r=0,t=10,b=0))
-            st.plotly_chart(bar, use_container_width=True)
-        else:
-            st.warning("이 국가의 예시 목표가 없어요. (필요하면 목표 %를 직접 입력해 보세요)")
-            user_tgt = st.slider("직접 입력: 2030 감축 목표(%)", 0, 60, 30)
-            cmp_df = pd.DataFrame({
-                "항목":["나의 감축률(게임)","사용자 입력 목표","전세계 평균(가상)"],
-                "감축률(%)":[my_red, user_tgt, world_avg]
-            })
-            bar = px.bar(cmp_df, x="항목", y="감축률(%)", color="항목",
-                         range_y=[0, 60], text="감축률(%)")
-            bar.update_traces(texttemplate="%{y:.1f}%", textposition="outside")
-            bar.update_layout(showlegend=False, height=260, margin=dict(l=0,r=0,t=10,b=0))
-            st.plotly_chart(bar, use_container_width=True)
+    st.markdown(
+        """
+        **익명처리(비식별화)**는, 데이터를 분석에는 쓸 수 있지만  
+        개별 개인을 알아보기는 어렵도록 정보를 일반화하거나 삭제하는 과정입니다.  
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        여기서는 간단한 예시 데이터(나이, 우편번호, 질병)를 가지고  
+        나이 구간과 우편번호 자릿수를 조절하면서  
+        각 그룹에 몇 명이 포함되는지(=k값)를 확인해 봅니다.
+        """
+    )
 
-    st.divider()
-    st.button("🌱 환경 실천하러 가기", on_click=go_to, args=("action",))
+    # 예시 데이터 (작은 의료 데이터셋)
+    raw_data = pd.DataFrame(
+        {
+            "나이": [23, 25, 27, 34, 36, 42, 44, 52, 55, 60],
+            "우편번호": ["12345", "12340", "12347", "12390", "12410",
+                      "12500", "12503", "12780", "12782", "12900"],
+            "질병": ["감기", "독감", "우울증", "감기", "당뇨",
+                    "고혈압", "감기", "우울증", "감기", "암"]
+        }
+    )
 
-# ──────────────────────────────
-# 화면: 행동 (팁/배지/일일목표 + 지구 반응)
-# ──────────────────────────────
-elif ss.page=="action":
-    st.header("🌱 환경 행동으로 지구를 행복하게 해주세요!")
+    st.write("🔎 **원본 데이터(예시)**")
+    st.dataframe(raw_data, use_container_width=True)
 
-    # 즉각 효과 배너 (효과 시간 동안만 표시)
-    if ss.effect_type and ss.effect_until > now_ts():
-        render_banner(ss.effect_type)
+    st.markdown("---")
 
-    # ① 행동별 팁 메시지
-    good_actions = {
-        "분리수거 ♻️": (5, "깨끗이 헹구고 분리하면 재활용률이 올라가요!"),
-        "텀블러 사용 ☕": (3, "텀블러 1회 = 일회용 컵 1개 절감!"),
-        "대중교통 이용 🚌": (4, "승용차 대비 탄소를 크게 줄일 수 있어요."),
-        "일회용품 줄이기 🛍️": (5, "다회용이 곧 지구의 미소입니다!"),
-        "계단 이용 🚶": (2, "전기 절약 + 건강은 덤!"),
-    }
-    bad_actions = {
-        "차 혼자 타기 🚗": (-5, "가능하면 카풀·대중교통을 고려해요."),
-        "에어컨 빵빵 ❄️": (-4, "적정온도(여름 26~28도) 유지가 좋아요."),
-        "일회용 빨대 사용 🥤": (-2, "빨대 없이도 충분히 즐길 수 있어요!"),
-    }
+    st.write("### 익명화 설정")
 
-    st.subheader("✅ 좋은 행동")
-    gcols = st.columns(len(good_actions))
-    for (label, (pts, tip)), col in zip(good_actions.items(), gcols):
-        with col:
-            if st.button(f"{label} (+{pts})", use_container_width=True):
-                apply_action(pts, label, True, tip)
+    age_group_size = st.slider("나이 구간 크기 (예: 5살 단위, 10살 단위)", min_value=5, max_value=20, value=10, step=5)
+    zip_keep = st.slider("우편번호 앞에서부터 보존할 자리 수", min_value=1, max_value=5, value=3)
 
-    st.subheader("⚠️ 나쁜 행동")
-    bcols = st.columns(len(bad_actions))
-    for (label, (pts, tip)), col in zip(bad_actions.items(), bcols):
-        with col:
-            if st.button(f"{label} ({pts})", use_container_width=True):
-                apply_action(pts, label, False, tip)
+    def generalize_age(age, group_size):
+        base = (age // group_size) * group_size
+        return f"{base}~{base + group_size - 1}"
 
-    # 현재 상태
-    h = happiness(ss.score)
-    st.subheader(f"현재 점수: {ss.score} | 콤보: {ss.streak}타 | 오늘 목표: {ss.daily_target}점" + (" ✅" if ss.daily_achieved else ""))
-    st.progress(h, text="지구 행복도")
+    def generalize_zip(zipcode, keep):
+        if len(zipcode) <= keep:
+            return zipcode
+        return zipcode[:keep] + "*" * (len(zipcode) - keep)
 
-    # 🌍 지구 (행복/아픔 즉각 효과 포함)
-    render_earth(h)
+    anon_df = raw_data.copy()
+    anon_df["나이_구간"] = anon_df["나이"].apply(lambda x: generalize_age(x, age_group_size))
+    anon_df["우편번호_일반화"] = anon_df["우편번호"].apply(lambda x: generalize_zip(x, zip_keep))
 
-    # ② 배지 보여주기
-    render_badges()
+    # k-익명성 계산: (나이_구간, 우편번호_일반화) 그룹별 인원 수
+    grouping_cols = ["나이_구간", "우편번호_일반화"]
+    group_counts = (
+        anon_df.groupby(grouping_cols)
+        .size()
+        .reset_index(name="그룹_인원수(k)")
+    )
 
-    c1,c2 = st.columns(2)
-    with c1: st.button("📋 행동 기록 & 미션 보기", on_click=go_to, args=("mission",), use_container_width=True)
-    with c2: st.button("🏠 처음 화면으로", on_click=go_to, args=("start",), use_container_width=True)
+    # 각 행에 그룹 인원 수 붙이기
+    anon_df = anon_df.merge(group_counts, on=grouping_cols, how="left")
 
-# ──────────────────────────────
-# 화면: 기록/미션 (+ 배지)
-# ──────────────────────────────
-elif ss.page=="mission":
-    st.header("✅ 오늘 실천한 행동")
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
-    if ss.actions:
-        for i,a in enumerate(ss.actions,1): st.write(f"{i}. {a}")
+    st.write("### 익명화(일반화) 결과")
+    st.dataframe(
+        anon_df[["나이_구간", "우편번호_일반화", "질병", "그룹_인원수(k)"]],
+        use_container_width=True
+    )
+
+    min_k = int(anon_df["그룹_인원수(k)"].min())
+    st.success(f"현재 설정에서 **최소 k 값 = {min_k}** 입니다.")
+
+    if min_k < 3:
+        st.warning(
+            "⚠ 일부 그룹의 인원 수(k)가 3 미만이라, 해당 그룹에 속한 사람은 다시 식별될 위험이 있습니다.\n"
+            "→ 나이 구간을 더 크게 하거나, 우편번호를 더 짧게 표시해서 k를 키워 보세요."
+        )
     else:
-        st.write("아직 실천한 행동이 없어요 🌱")
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.info(
+            "✅ 모든 그룹의 인원 수(k)가 3 이상이므로, 이 예시에서는 재식별 위험이 상대적으로 줄어든 상태입니다."
+        )
 
-    st.header("🎯 오늘의 환경 미션")
-    missions=[
-        "플라스틱 컵 줄이기 🥤❌",
-        "전기 사용 1시간 줄이기 💡⚡",
-        "텀블러로 음료 마시기 ☕🌿",
-        "분리수거 철저히 하기 ♻️💚",
-        "대중교통으로 이동하기 🚌"
-    ]
-    st.info(f"오늘의 미션: {missions[ss.score%len(missions)]}")
+# -------------------------------------------------
+# 3. 동형암호(개념 실습) 탭
+# -------------------------------------------------
+with tab3:
+    st.subheader("3️⃣ 동형암호 개념 실습 (장난감 예시)")
 
-    st.subheader("🏅 내가 모은 배지")
-    render_badges()
+    st.markdown(
+        """
+        **동형암호(Homomorphic Encryption)**는  
+        🔐 **데이터를 암호화한 상태 그대로** 연산(더하기, 곱하기 등)을 할 수 있게 해 주는 암호입니다.
 
-    st.subheader("지금 지구 상태 미리보기")
-    render_earth(happiness(ss.score))
+        예를 들어,  
+        - 병원 데이터(혈압, 혈당 수치 등)를 암호화해서 클라우드에 저장해도  
+        - 클라우드 서버가 **평문을 보지 못한 상태**에서 합계 또는 평균을 계산해 줄 수 있다면  
+        개인정보 보호에 큰 도움이 됩니다.
 
-    c1,c2=st.columns(2)
-    with c1: st.button("🌱 더 실천하러 가기", on_click=go_to, args=("action",), use_container_width=True)
-    with c2: st.button("🏠 처음 화면으로", on_click=go_to, args=("start",), use_container_width=True)
-      
+        여기서는 아주 단순한 *교육용 장난감* 예시로  
+        “암호 상태에서 덧셈을 해도, 복호화하면 평문 덧셈 결과가 나온다”는 느낌만 살펴봅니다.  
+        (실제 동형암호는 훨씬 복잡하고, 이 예시는 보안적으로 안전하지 않습니다!)
+        """
+    )
+
+    st.markdown("### 1) 키와 평문 설정")
+
+    key = st.slider("암호 키 K (너무 작지 않게 설정)", min_value=50, max_value=300, value=101, step=1)
+    m1 = st.number_input("첫 번째 평문 값 m1", min_value=0, max_value=20, value=5, step=1)
+    m2 = st.number_input("두 번째 평문 값 m2", min_value=0, max_value=20, value=7, step=1)
+
+    st.caption("※ 조건: 두 평문 합 m1 + m2 < K 범위 안에 있어야 제대로 동작합니다.")
+
+    if st.button("동형암호(장난감) 연산 시뮬레이션"):
+        # 장난감 암호화: C = m + r*K  (r은 아무 큰 정수)
+        r1 = random.randint(1, 10)
+        r2 = random.randint(1, 10)
+
+        C1 = m1 + r1 * key
+        C2 = m2 + r2 * key
+
+        # 서버(제3자)는 C1, C2만 알고 있다고 가정하고, 덧셈만 수행
+        C_sum = C1 + C2
+
+        # 복호화: C mod K = m (단, m < K)
+        m1_dec = C1 % key
+        m2_dec = C2 % key
+        m_sum_dec = C_sum % key
+
+        st.write("#### (1) 개별 암호문")
+        st.code(
+            f"""
+키 K = {key}
+
+평문 m1 = {m1}
+랜덤 r1 = {r1}
+암호문 C1 = m1 + r1*K = {C1}
+
+평문 m2 = {m2}
+랜덤 r2 = {r2}
+암호문 C2 = m2 + r2*K = {C2}
+""",
+            language="text",
+        )
+
+        st.write("#### (2) 서버에서 하는 일 (암호문 덧셈만)")
+        st.code(
+            f"""
+서버는 평문을 모른 채로, 암호문들만 더합니다.
+
+C_sum = C1 + C2 = {C_sum}
+""",
+            language="text",
+        )
+
+        st.write("#### (3) 복호화 결과 (C mod K)")
+        st.code(
+            f"""
+복호화(예시):
+
+C1 mod K = {C1} mod {key} = {m1_dec}   (원래 m1 = {m1})
+C2 mod K = {C2} mod {key} = {m2_dec}   (원래 m2 = {m2})
+
+C_sum mod K = {C_sum} mod {key} = {m_sum_dec}
+원래 m1 + m2 = {m1} + {m2} = {m1 + m2}
+""",
+            language="text",
+        )
+
+        if m1 + m2 == m_sum_dec:
+            st.success("✅ 암호 상태에서 더한 뒤 복호화해도, 평문 덧셈 결과와 일치합니다!")
+        else:
+            st.warning(
+                "❗ m1 + m2 ≥ K 이라서, 이 단순한 장난감 예시에서는 결과가 정확히 일치하지 않을 수 있습니다.\n"
+                "→ K를 더 크게 설정해 보세요."
+            )
+
+        st.info(
+            "이 예시는 보안적으로 안전한 암호가 아니라, "
+            "‘암호 상태에서 연산이 가능하다’는 동형암호의 개념을 수학적으로 맛보는 교육용 모델입니다.\n"
+            "실제 동형암호(FHE, HE)는 훨씬 복잡한 수학과 큰 수 연산을 사용합니다."
+        )
