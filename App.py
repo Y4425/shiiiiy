@@ -1,66 +1,52 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import hashlib
 import random
 
 # -------------------------------------------------
 # 기본 설정 & 공통 스타일
 # -------------------------------------------------
-st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
 st.set_page_config(
-    page_title="데이터 가명처리 · 익명처리 · 동형암호 실습",
+    page_title="데이터 가명처리 · 익명처리 · 동형암호 학습 앱",
     layout="centered"
 )
 
-# 공통 CSS (배경, 카드, 버튼, 제목 스타일)
 GLOBAL_CSS = """
 <style>
 body {
     background-color: #F4F5FB;
 }
-
-/* 메인 컨테이너 padding 약간 줄이기 */
 .block-container {
     padding-top: 1.5rem;
     padding-bottom: 1.5rem;
 }
-
-/* 카드 스타일 */
 .card {
     background: #FFFFFF;
-    padding: 20px 22px;
-    border-radius: 18px;
+    padding: 18px 20px;
+    border-radius: 16px;
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-    margin-top: 12px;
-    margin-bottom: 12px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
-
-/* 섹션 제목 */
 .section-title {
     font-size: 1.1rem;
-    font-weight: 700;
-    color: #3949AB;
+    font-weight: 800;
+    color: #283593;
     margin-bottom: 0.3rem;
 }
-
-/* 작은 캡션 텍스트 */
 .sub-caption {
-    font-size: 0.86rem;
-    color: #666666;
+    font-size: 0.9rem;
+    color: #555555;
 }
-
-/* 버튼 */
-.stButton > button {
-    background: linear-gradient(90deg, #5C6BC0, #3949AB);
-    color: white;
+.label-chip {
+    display: inline-block;
+    padding: 2px 10px;
     border-radius: 999px;
-    padding: 0.5rem 1.4rem;
-    border: none;
+    background: #E8EAF6;
+    color: #283593;
+    font-size: 0.8rem;
     font-weight: 600;
 }
-
-/* k 표시 뱃지 */
 .k-badge-small {
     background: #ffb3b3;
     padding: 4px 10px;
@@ -85,19 +71,14 @@ body {
     font-weight: 600;
     font-size: 0.85rem;
 }
-
-/* 작은 라벨 느낌 텍스트 */
-.label-chip {
-    display: inline-block;
-    padding: 2px 10px;
+.stButton > button {
+    background: linear-gradient(90deg, #5C6BC0, #3949AB);
+    color: white;
     border-radius: 999px;
-    background: #E8EAF6;
-    color: #283593;
-    font-size: 0.8rem;
+    padding: 0.5rem 1.4rem;
+    border: none;
     font-weight: 600;
 }
-
-/* 코드 블록 폰트 조금 줄이기 */
 code {
     font-size: 0.8rem !important;
 }
@@ -106,26 +87,49 @@ code {
 st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
 # -------------------------------------------------
-# 상단 타이틀 영역
+# 상단 타이틀 + 전체 학습 가이드
 # -------------------------------------------------
+st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+
 st.markdown(
     """
     <div style="text-align:center; margin-bottom: 1.2rem;">
         <div style="font-size:2.0rem; font-weight:800; color:#283593;">
-            🧬 데이터 가명처리 · 익명처리 · 동형암호 실습
+            🧬 데이터 가명처리 · 익명처리 · 동형암호 학습 앱
         </div>
         <div style="margin-top:0.4rem; font-size:0.95rem; color:#555;">
-            개인정보 보호 기술(가명처리, 익명·비식별화, 동형암호 개념)을
-            <b>직접 체험</b>해 볼 수 있는 교육용 웹앱입니다.
+            개인정보 보호 기술(가명처리, 익명화, 동형암호 개념)을
+            <b>직접 실험</b>해 보며 배우는 교육용 웹앱입니다.
         </div>
         <div style="margin-top:0.3rem;">
-            <span class="label-chip">코딩 동아리 프로젝트</span>
-            <span class="label-chip">Python · Streamlit</span>
+            <span class="label-chip">가명처리</span>
+            <span class="label-chip">익명·비식별화</span>
+            <span class="label-chip">동형암호</span>
         </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+with st.expander("📘 이 앱을 어떻게 사용하면 좋을까? (학습 가이드)", expanded=True):
+    st.markdown(
+        """
+        **추천 학습 순서**
+
+        1️⃣ 1탭(가명처리)에서 *해시와 마스킹* 개념을 눈으로 확인  
+        2️⃣ 2탭(익명·비식별화)에서 *k-익명성*과 이상치, 일반화를 체험  
+        3️⃣ 3탭(동형암호)에서 *평문·암호문·복호화* 관계를 수식으로 이해  
+
+        각 탭에는  
+        - **학습 목표**  
+        - **개념 정리**  
+        - **실습 단계 안내**  
+        - **미니 퀴즈**  
+
+        가 들어 있어서,  
+        그냥 위에서부터 **천천히 따라 하기만 해도** 개념이 어느 정도 잡히도록 구성했습니다.
+        """
+    )
 
 tab1, tab2, tab3 = st.tabs(["1️⃣ 가명처리", "2️⃣ 익명·비식별화", "3️⃣ 동형암호(개념 실습)"])
 
@@ -137,33 +141,45 @@ with tab1:
     st.markdown(
         """
         <div class="sub-caption">
-        가명처리는 이름·주민번호·전화번호처럼 <b>직접 식별자</b>를  
-        다른 값으로 치환해서 원래 누구였는지 알기 어렵게 만드는 기술입니다.
-        (예: 이름 → 마스킹, 주민번호 → 해시 기반 가명 ID 등)
+        <b>학습 목표</b><br>
+        · 가명처리가 무엇인지 말로 설명할 수 있다.<br>
+        · 해시(hash)와 마스킹(masking)의 차이를 이해한다.<br>
+        · 같은 주민번호라도 salt가 다르면 다른 가명 ID가 만들어짐을 확인한다.
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    with st.container():
-        col1, col2 = st.columns(2)
-        with col1:
-            with st.container():
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("**🔑 원본 개인정보 입력**")
-                name = st.text_input("이름", value="홍길동")
-                rrn = st.text_input("주민번호(예시)", value="000101-3123456")
-                phone = st.text_input("전화번호(예시)", value="010-1234-5678")
-                st.markdown("</div>", unsafe_allow_html=True)
+    with st.expander("📚 개념 정리: 가명처리 · 해시 · salt", expanded=False):
+        st.markdown(
+            """
+            - **가명처리**: 이름, 주민번호처럼 직접 개인을 식별할 수 있는 값을 다른 값으로 치환해 두는 것  
+            - **마스킹**: 일부 글자를 `*` 등으로 가려서 원래 값을 바로 보이지 않게 만드는 것  
+            - **해시(Hash)**: 입력값을 고정 길이의 '되돌릴 수 없는' 문자열로 바꾸는 함수  
+            - **Salt**: 같은 값이라도 다른 해시가 나오도록 섞어 넣는 추가 문자열<br>
+              (원래 값 + salt → 해시 → 가명 ID)
+            """
+        )
 
-        with col2:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("**🧂 가명 ID 생성을 위한 비밀키 (salt)**")
-            salt = st.text_input("비밀키(salt)", value="my_secret_key")
-            st.caption("※ 같은 주민번호라도 salt가 다르면 다른 가명 ID가 생성됩니다.")
-            st.markdown("</div>", unsafe_allow_html=True)
+    # 입력 영역
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("**① 원본 개인정보 입력**")
+        name = st.text_input("이름", value="홍길동")
+        rrn = st.text_input("주민번호(예시)", value="000101-3123456")
+        phone = st.text_input("전화번호(예시)", value="010-1234-5678")
+        st.caption("※ 실제 주민번호/전화번호 대신 예시 데이터를 사용하는 것이 좋습니다.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    # 마스킹 함수들
+    with col2:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("**② 가명 ID 생성을 위한 비밀키(salt)**")
+        salt = st.text_input("비밀키(salt)", value="my_secret_key")
+        st.caption("같은 주민번호라도 salt를 바꾸면 다른 가명 ID가 생성됩니다.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # 함수 정의
     def mask_name(n: str) -> str:
         if len(n) <= 1:
             return "*"
@@ -183,12 +199,15 @@ with tab1:
             return "*" * (len(p) - 4) + p[-4:]
         return p
 
-    def make_pseudo_id(text: str, salt: str = "") -> str:
-        base = (text + salt).encode("utf-8")
+    def make_pseudo_id(text: str, salt_value: str = "") -> str:
+        base = (text + salt_value).encode("utf-8")
         return hashlib.sha256(base).hexdigest()
 
+    # 실행 영역
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    if st.button("🔐 가명처리 실행하기"):
+    st.markdown("**③ 가명처리 실행**")
+
+    if st.button("🔐 가명처리 결과 보기"):
         masked_name = mask_name(name)
         masked_rrn = mask_rrn(rrn)
         masked_phone = mask_phone(phone)
@@ -197,7 +216,7 @@ with tab1:
         result_df = pd.DataFrame(
             {
                 "항목": ["이름", "주민번호", "전화번호", "가명 ID(해시)"],
-                "원본 값": [name, rrn, phone, "(원본 값을 직접 저장하지 않음)"],
+                "원본 값": [name, rrn, phone, "(원본을 직접 저장하지 않음)"],
                 "가명/마스킹 결과": [
                     masked_name,
                     masked_rrn,
@@ -207,33 +226,68 @@ with tab1:
             }
         )
 
-        st.success("가명처리 결과입니다.")
         st.dataframe(result_df, use_container_width=True)
-
         st.info(
-            "실제 시스템에서는 주민번호·전화번호를 그대로 저장하지 않고, "
-            "이런 해시 기반 가명 ID만 보관하여 유출 위험을 줄입니다."
+            "실제 시스템에서는 주민번호·전화번호 대신 이런 가명 ID만 저장하여 "
+            "데이터가 유출되어도 원래 사람을 바로 알아보기 어렵게 만듭니다."
         )
     else:
         st.caption("버튼을 눌러 가명처리 결과를 확인해 보세요.")
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # 미니 퀴즈
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("**🧩 미니 퀴즈: 해시와 가명처리 이해 점검**")
+    q1 = st.radio(
+        "Q1. 해시(hash) 값만으로는 원래 주민번호를 다시 알아낼 수 있다.",
+        ["그렇다", "아니다"],
+        index=1,
+    )
+    if q1 == "그렇다":
+        st.error("❌ 해시는 되돌릴 수 없는 일방향 함수라 복호화가 불가능합니다.")
+    else:
+        st.success("✅ 정답! 해시는 평문으로 복호화할 수 없기 때문에 가명처리에 적합합니다.")
+
+    q2 = st.radio(
+        "Q2. salt를 바꾸면 같은 주민번호라도 다른 가명 ID가 나오는 이유는?",
+        [
+            "랜덤하게 바뀌어서",
+            "해시 입력값 자체가 달라지기 때문",
+            "주민번호가 바뀌기 때문",
+        ],
+        index=1,
+    )
+    if q2 == "해시 입력값 자체가 달라지기 때문":
+        st.success("✅ 정확합니다! (주민번호 + salt)가 해시의 입력이기 때문에 입력이 바뀌면 결과도 달라집니다.")
+    else:
+        st.info("ℹ️ 해시 함수는 입력이 조금만 달라도 완전히 다른 결과를 내는 성질을 갖고 있습니다.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
 # -------------------------------------------------
-# 2. 익명·비식별화 탭 (k-익명성 + 디자인 개선)
+# 2. 익명·비식별화 탭
 # -------------------------------------------------
 with tab2:
     st.markdown('<div class="section-title">2️⃣ 익명·비식별화 (k-Anonymity)</div>', unsafe_allow_html=True)
     st.markdown(
         """
         <div class="sub-caption">
-        익명·비식별화는 데이터는 남기되,  
-        <b>개인이 누구인지 재식별하기 어렵도록</b> 정보를 일반화/삭제하는 과정입니다.  
-        여기서는 <b>나이 구간</b>과 <b>우편번호 앞자리</b>를 조절하면서
-        <span style="font-weight:600;">k-익명성</span>을 직관적으로 확인해 봅니다.
+        <b>학습 목표</b><br>
+        · 익명·비식별화와 가명처리의 차이를 설명할 수 있다.<br>
+        · k-익명성에서 k의 의미를 이해한다.<br>
+        · 나이 구간과 우편번호 자릿수 조정이 k 값에 미치는 영향을 관찰한다.
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    with st.expander("📚 개념 정리: 익명처리 · k-익명성", expanded=False):
+        st.markdown(
+            """
+            - **익명·비식별화**: 개별 인물을 특정하기 어렵도록 정보(나이, 주소 등)를 일반화하거나 제거하는 것  
+            - **준식별자**: 단독으로는 애매하지만, 몇 개 조합하면 개인을 추론할 수 있는 정보 (나이, 성별, 우편번호 등)  
+            - **k-익명성**: 어떤 속성 조합에 속한 사람이 최소 k명 이상이면, 그 중 누가 누구인지 알아보기 어려운 상태  
+            """
+        )
 
     # 예시 데이터
     raw_data = pd.DataFrame(
@@ -256,14 +310,14 @@ with tab2:
     )
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("**🔍 원본 데이터 (작은 의료 데이터 예시)**")
+    st.markdown("**① 원본 데이터 (작은 의료 데이터 예시)**")
     st.dataframe(raw_data, use_container_width=True)
+    st.caption("※ 실제 의료 데이터는 훨씬 더 크고, 더 많은 속성을 포함합니다.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 설정 카드
+    # 설정
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("**⚙️ 익명화 설정**")
-
+    st.markdown("**② 익명화 설정 (나이 구간 · 우편번호 자릿수)**")
     col_a, col_b = st.columns(2)
     with col_a:
         age_group_size = st.slider(
@@ -280,7 +334,7 @@ with tab2:
             max_value=5,
             value=3,
         )
-    st.caption("※ 구간을 넓게, 우편번호 자릿수를 줄일수록 k 값이 커지는 경향이 있습니다.")
+    st.caption("※ 나이 구간을 넓게 하고 우편번호 자릿수를 줄일수록 그룹이 커지고 k 값이 커지는 경향이 있습니다.")
     st.markdown("</div>", unsafe_allow_html=True)
 
     # 일반화 함수
@@ -293,7 +347,6 @@ with tab2:
             return zipcode
         return zipcode[:keep] + "*" * (len(zipcode) - keep)
 
-    # 1차 일반화
     anon_df = raw_data.copy()
     anon_df["나이_구간"] = anon_df["나이"].apply(lambda x: generalize_age(x, age_group_size))
     anon_df["우편번호_일반화"] = anon_df["우편번호"].apply(lambda x: generalize_zip(x, zip_keep))
@@ -307,16 +360,13 @@ with tab2:
     )
     min_k = int(group_k["k"].min())
 
-    # k가 너무 작으면 자동 보정
-    target_k = 3  # 최소 3-익명성 이상을 기본 목표
+    # k가 작으면 자동 보정
+    target_k = 3
     auto_adjusted = False
     if min_k < target_k:
         auto_adjusted = True
-        # 나이 구간 키우고, 우편번호 자릿수 줄이기
         age_group_size = max(age_group_size, 15)
         zip_keep = min(zip_keep, 2)
-
-        # 다시 일반화
         anon_df["나이_구간"] = anon_df["나이"].apply(lambda x: generalize_age(x, age_group_size))
         anon_df["우편번호_일반화"] = anon_df["우편번호"].apply(lambda x: generalize_zip(x, zip_keep))
         group_k = (
@@ -327,27 +377,26 @@ with tab2:
         )
         min_k = int(group_k["k"].min())
 
-    # 결과 카드들
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("**🎨 익명화(일반화) 결과 – 그룹별 k 값**")
+    st.markdown("**③ 익명화(일반화) 결과 – 그룹별 k 값**")
 
     if auto_adjusted:
         st.warning(
-            f"초기 설정에서 최소 k 값이 너무 작아 자동으로 값을 조정했습니다.\n"
-            f"→ 나이 구간: {age_group_size}살 단위, 우편번호 앞 {zip_keep}자리만 사용"
+            f"초기 설정에서 일부 그룹의 k 값이 {target_k} 미만이라, 자동으로 나이 구간과 우편번호 자릿수를 조정했습니다.\n"
+            f"→ 현재 기준: 나이 {age_group_size}살 단위, 우편번호 앞 {zip_keep}자리"
         )
 
     for _, row in group_k.iterrows():
-        k = int(row["k"])
+        k_val = int(row["k"])
         age_r = row["나이_구간"]
         zip_r = row["우편번호_일반화"]
 
-        if k < 3:
-            badge = f"<span class='k-badge-small'>k={k}</span>"
-        elif k < 5:
-            badge = f"<span class='k-badge-mid'>k={k}</span>"
+        if k_val < 3:
+            badge = f"<span class='k-badge-small'>k={k_val}</span>"
+        elif k_val < 5:
+            badge = f"<span class='k-badge-mid'>k={k_val}</span>"
         else:
-            badge = f"<span class='k-badge-good'>k={k}</span>"
+            badge = f"<span class='k-badge-good'>k={k_val}</span>"
 
         st.markdown(
             f"""
@@ -361,11 +410,43 @@ with tab2:
         )
 
     st.success(f"🔒 최종 최소 k 값: **{min_k}** (k가 클수록 재식별 위험이 낮습니다)")
-    with st.expander("📊 익명화된 상세 데이터 테이블도 보고 싶다면 열어보기"):
+    with st.expander("📊 익명화된 상세 데이터 테이블"):
         st.dataframe(
             anon_df[["나이_구간", "우편번호_일반화", "질병"]],
             use_container_width=True,
         )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # 미니 퀴즈
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("**🧩 미니 퀴즈: k-익명성 이해 점검**")
+    q3 = st.radio(
+        "Q1. 어떤 그룹의 k 값이 1이면, 이 그룹에 속한 사람은 어떻게 될까?",
+        [
+            "다른 사람들과 섞여서 안전하다.",
+            "해당 사람을 다시 식별할 위험이 크다.",
+            "k 값과는 상관없다.",
+        ],
+        index=1,
+    )
+    if q3 == "해당 사람을 다시 식별할 위험이 크다.":
+        st.success("✅ 정답! k=1이면 사실상 개인 하나만 구분되므로 재식별 위험이 매우 큽니다.")
+    else:
+        st.info("ℹ️ k 값이 작을수록(1에 가까울수록) '누군지 특정될 가능성'이 커진다는 점이 핵심입니다.")
+
+    q4 = st.radio(
+        "Q2. k 값을 키우고 싶다면 어떻게 해야 할까?",
+        [
+            "나이 구간을 더 잘게 나눈다.",
+            "우편번호를 더 길게 표시한다.",
+            "나이 구간을 넓히거나 우편번호 자릿수를 줄인다.",
+        ],
+        index=2,
+    )
+    if q4 == "나이 구간을 넓히거나 우편번호 자릿수를 줄인다.":
+        st.success("✅ 맞아요! 일반화를 강하게 할수록 더 많은 사람이 같은 그룹에 묶여 k가 커집니다.")
+    else:
+        st.info("ℹ️ 세부 정보가 많을수록 개인을 더 쉽게 구분할 수 있다는 점을 떠올려 보세요.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # -------------------------------------------------
@@ -376,16 +457,27 @@ with tab3:
     st.markdown(
         """
         <div class="sub-caption">
-        동형암호(Homomorphic Encryption)는 <b>암호화된 상태 그대로</b>  
-        덧셈·곱셈 같은 연산을 할 수 있게 해 주는 암호입니다.  
-        여기서는 수학적으로 직관을 잡기 위한 <b>아주 단순한 장난감 모델</b>을 사용합니다.
+        <b>학습 목표</b><br>
+        · 평문, 암호문, 복호화, 키의 의미를 구분할 수 있다.<br>
+        · 장난감 동형암호 모형을 통해 '암호 상태로 연산' 개념을 이해한다.<br>
+        · 왜 m1 + m2와 (C1 + C2) mod K가 같아지는지 수식으로 설명할 수 있다.
         </div>
         """,
         unsafe_allow_html=True,
     )
 
+    with st.expander("📚 개념 정리: 평문 · 암호문 · 복호화 · 키", expanded=False):
+        st.markdown(
+            """
+            - **평문(Plaintext)**: 암호화되기 전의 원래 데이터 (예: 5, 7 같은 숫자)  
+            - **암호문(Ciphertext)**: 평문을 숨겨 놓은 데이터. 겉으로 보기에는 의미 없는 수/문자열  
+            - **키(Key)**: 암호를 만들거나 풀 때 사용하는 비밀 값  
+            - **복호화(Decryption)**: 암호문과 키를 이용해 다시 평문으로 되돌리는 과정  
+            """
+        )
+
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("**1️⃣ 키와 평문 값 설정**")
+    st.markdown("**① 키와 평문 값 설정**")
 
     key = st.slider("암호 키 K (충분히 큰 정수)", min_value=50, max_value=300, value=101, step=1)
     col_m1, col_m2 = st.columns(2)
@@ -394,10 +486,12 @@ with tab3:
     with col_m2:
         m2 = st.number_input("두 번째 평문 값 m2", min_value=0, max_value=20, value=7, step=1)
 
-    st.caption("※ 조건: m1 + m2 < K 범위 안에 있을수록 정확히 동작합니다.")
+    st.caption("※ 조건: m1 + m2 < K 범위 안에 있을수록 결과가 더 잘 맞습니다.")
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("**② 암호화 · 연산 · 복호화 과정 보기**")
+
     if st.button("🧮 동형암호(장난감) 연산 시뮬레이션"):
         r1 = random.randint(1, 10)
         r2 = random.randint(1, 10)
@@ -436,7 +530,7 @@ C_sum = C1 + C2 = {C_sum}
             language="text",
         )
 
-        st.markdown("**(3) 복호화: C mod K**")
+        st.markdown("**(3) 복호화: C mod K 계산**")
         st.code(
             f"""
 복호화(예시):
@@ -465,4 +559,29 @@ C_sum mod K = {C_sum} mod {key} = {m_sum_dec}
         )
     else:
         st.caption("버튼을 눌러 암호화·복호화 과정을 단계별로 확인해 보세요.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # 미니 퀴즈
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("**🧩 미니 퀴즈: 동형암호 개념 점검**")
+
+    q5 = st.radio(
+        "Q1. 서버는 어떤 정보를 모른 채로 계산을 수행하는가?",
+        ["평문 값(m1, m2)", "키 K", "암호문 C1, C2"],
+        index=0,
+    )
+    if q5 == "평문 값(m1, m2)":
+        st.success("✅ 맞아요! 서버는 평문을 몰라도 암호문끼리 연산만 수행합니다.")
+    else:
+        st.info("ℹ️ 동형암호의 핵심은 '평문을 알 필요 없이 암호문만 가지고 계산 가능'이라는 점입니다.")
+
+    q6 = st.radio(
+        "Q2. 이 장난감 예시에서 복호화에 사용되는 연산은?",
+        ["덧셈", "나눗셈", "mod K 연산"],
+        index=2,
+    )
+    if q6 == "mod K 연산":
+        st.success("✅ 정답! C = m + rK 이므로 C mod K = m 이 되어 평문을 되찾을 수 있습니다.")
+    else:
+        st.info("ℹ️ C = m + rK 에서 K의 배수 부분은 mod K를 하면 0이 된다는 점을 떠올려 보세요.")
     st.markdown("</div>", unsafe_allow_html=True)
